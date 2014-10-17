@@ -1,7 +1,7 @@
 {
   "name": "mem-fs",
   "version": "1.0.0",
-  "description": "Simple memory based file-system",
+  "description": "Simple in-memory vinyl file store",
   "main": "index.js",
   "scripts": {
     "test": "mocha"
@@ -17,10 +17,10 @@
   },
   "homepage": "https://github.com/SBoudrias/mem-fs",
   "dependencies": {
+    "vinyl": "^0.4.3",
     "vinyl-file": "^1.1.0"
   },
   "devDependencies": {
-    "vinyl": "^0.4.3",
-    "mocha": "*"
+    "mocha": "^1.21.5"
   }
 }
