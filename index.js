@@ -2,6 +2,7 @@
 var path = require('path');
 var vinylFile = require('vinyl-file');
 var File = require('vinyl');
+var through = require('through2');
 
 exports.create = function () {
   var store = {};
@@ -39,6 +40,15 @@ exports.create = function () {
         onEach(store[key], index);
       });
       return this;
+    },
+
+    stream: function () {
+      var stream = through.obj();
+      setImmediate(function () {
+        this.each(stream.write.bind(stream));
+        stream.end();
+      }.bind(this));
+      return stream;
     }
   };
 };

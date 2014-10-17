@@ -75,4 +75,27 @@ describe('mem-fs', function () {
       assert.equal(this.store.each(function () {}), this.store);
     });
   });
+
+  describe('#stream()', function () {
+    beforeEach(function() {
+      this.store.get(fixtureA);
+      this.store.get(fixtureB);
+    });
+
+    it('returns an object stream for each file contained', function (done) {
+      var index = 0;
+      var files = [fixtureA, fixtureB];
+      var stream = this.store.stream()
+
+      stream.on('data', function (file) {
+        assert.equal(path.resolve(files[index]), file.path);
+        index++;
+      });
+
+      stream.on('end', function () {
+        assert.equal(index, 2);
+        done();
+      });
+    });
+  });
 });

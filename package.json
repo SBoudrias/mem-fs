@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/SBoudrias/mem-fs",
   "dependencies": {
+    "through2": "^0.6.3",
     "vinyl": "^0.4.3",
     "vinyl-file": "^1.1.0"
   },
