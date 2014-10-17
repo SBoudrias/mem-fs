@@ -16,9 +16,8 @@ exports.create = function () {
         cwd: process.cwd(),
         base: path.basename(filepath),
         path: filepath,
-        contents: new Buffer('')
+        contents: null
       });
-      file.state = 'unexistent';
     }
     store[filepath] = file;
     return file;

@@ -46,9 +46,8 @@ describe('mem-fs', function () {
 
     it('returns empty file reference if file does not exist', function () {
       var file = this.store.get(absentFile);
-      assert.equal(file.contents.toString(), '');
+      assert.equal(file.contents, null);
       assert.equal(file.path, path.resolve(absentFile));
-      assert.equal(file.state, 'unexistent');
     });
   });
 

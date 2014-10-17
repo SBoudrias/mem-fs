@@ -17,6 +17,10 @@ var store = require('mem-fs').create();
 store.get('/test/file.txt');
 ```
 
+When trying to load a file we cannot read from disk, an empty Vinyl file will be returned. The `contents` of this file will be set to `null`.
+
+Trying to get a directory or any invalid files will also return an empty Vinyl file pointer.
+
 ### Adding/updating a file
 
 You update file references by using `store#add()` method. This method take a `vinyl` file object as parameter.
