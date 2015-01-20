@@ -4,7 +4,7 @@ var assert = require('assert');
 var path = require('path');
 var File = require('vinyl');
 
-var memFs = require('..');
+var memFs = require('../');
 
 var fixtureA = 'fixtures/file-a.txt';
 var fixtureB = 'fixtures/file-b.txt';

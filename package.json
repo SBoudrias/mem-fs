@@ -2,20 +2,15 @@
   "name": "mem-fs",
   "version": "1.0.0",
   "description": "Simple in-memory vinyl file store",
-  "main": "index.js",
   "scripts": {
     "test": "mocha"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/SBoudrias/mem-fs"
-  },
+  "repository": "SBoudrias/mem-fs",
   "author": "Simon Boudrias",
   "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/SBoudrias/mem-fs/issues"
-  },
-  "homepage": "https://github.com/SBoudrias/mem-fs",
+  "files": [
+    "index.js"
+  ],
   "dependencies": {
     "through2": "^0.6.3",
     "vinyl": "^0.4.3",
