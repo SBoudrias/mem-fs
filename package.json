@@ -1,6 +1,6 @@
 {
   "name": "mem-fs",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Simple in-memory vinyl file store",
   "scripts": {
     "test": "mocha"
