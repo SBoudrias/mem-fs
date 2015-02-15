@@ -55,6 +55,15 @@ describe('mem-fs', function () {
     it('is chainable', function () {
       assert.equal(this.store.add(coffeeFile), this.store);
     });
+
+    it('triggers change event', function (done) {
+      this.store.on('change', function () {
+        var file = this.store.get('/test/file.coffee');
+        assert.equal(file.contents.toString(), 'test = 123');
+        done();
+      }.bind(this));
+      this.store.add(coffeeFile);
+    });
   });
 
   describe('#each()', function () {
