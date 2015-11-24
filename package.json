@@ -12,8 +12,8 @@
     "index.js"
   ],
   "dependencies": {
-    "through2": "^0.6.3",
-    "vinyl": "^0.4.3",
+    "through2": "^2.0.0",
+    "vinyl": "^1.1.0",
     "vinyl-file": "^1.1.0"
   },
   "devDependencies": {
