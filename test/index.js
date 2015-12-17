@@ -27,6 +27,8 @@ describe('mem-fs', function () {
       var file = this.store.get(fixtureA);
       assert.equal(file.contents.toString(), 'foo\n');
       assert.equal(file.cwd, process.cwd());
+      assert.equal(file.base, process.cwd());
+      assert.equal(file.relative, fixtureA);
       assert.equal(file.path, path.resolve(fixtureA));
     });
 
@@ -38,7 +40,7 @@ describe('mem-fs', function () {
       assert.equal(file2.contents.toString(), 'bar');
     });
 
-    it('retrive file from memory', function () {
+    it('retrieve file from memory', function () {
       this.store.add(coffeeFile);
       var file = this.store.get('/test/file.coffee');
       assert.equal(file.contents.toString(), 'test = 123');
@@ -47,6 +49,9 @@ describe('mem-fs', function () {
     it('returns empty file reference if file does not exist', function () {
       var file = this.store.get(absentFile);
       assert.equal(file.contents, null);
+      assert.equal(file.cwd, process.cwd());
+      assert.equal(file.base, process.cwd());
+      assert.equal(file.relative, absentFile);
       assert.equal(file.path, path.resolve(absentFile));
     });
   });
