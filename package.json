@@ -13,10 +13,10 @@
   ],
   "dependencies": {
     "through2": "^2.0.0",
-    "vinyl": "^1.1.0",
+    "vinyl": "^2.0.1",
     "vinyl-file": "^2.0.0"
   },
   "devDependencies": {
-    "mocha": "^2.0.1"
+    "mocha": "^3.1.2"
   }
 }
