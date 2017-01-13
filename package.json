@@ -14,7 +14,7 @@
   "dependencies": {
     "through2": "^2.0.0",
     "vinyl": "^2.0.1",
-    "vinyl-file": "^2.0.0"
+    "vinyl-file": "^3.0.0"
   },
   "devDependencies": {
     "mocha": "^3.1.2"
