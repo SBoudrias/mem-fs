@@ -17,6 +17,6 @@
     "vinyl-file": "^3.0.0"
   },
   "devDependencies": {
-    "mocha": "^3.1.2"
+    "mocha": "^4.0.0"
   }
 }
