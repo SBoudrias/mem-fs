@@ -37,7 +37,7 @@ exports.create = function () {
 
   Store.prototype.add = function (file) {
     store[file.path] = file;
-    this.emit('change');
+    this.emit('change', file.path);
     return this;
   };
 
