@@ -9,17 +9,21 @@ var through = require('through2');
 exports.create = function () {
   var store = {};
 
+  function createFile(filepath) {
+    return new File({
+      cwd: process.cwd(),
+      base: process.cwd(),
+      path: filepath,
+      contents: null
+    });
+  }
+
   function load(filepath) {
     var file;
     try {
       file = vinylFile.readSync(filepath);
     } catch (err) {
-      file = new File({
-        cwd: process.cwd(),
-        base: process.cwd(),
-        path: filepath,
-        contents: null
-      });
+      file = createFile(filepath);
     }
     store[filepath] = file;
     return file;
@@ -33,6 +37,11 @@ exports.create = function () {
   Store.prototype.get = function (filepath) {
     filepath = path.resolve(filepath);
     return store[filepath] || load(filepath);
+  };
+
+  Store.prototype.existsInMemory = function (filepath) {
+    filepath = path.resolve(filepath);
+    return !!store[filepath];
   };
 
   Store.prototype.add = function (file) {

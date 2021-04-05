@@ -22,7 +22,7 @@ describe('mem-fs', function () {
     this.store = memFs.create();
   });
 
-  describe('#get() / #add()', function () {
+  describe('#get() / #add() / #existsInMemory()', function () {
     it('load file from disk', function () {
       var file = this.store.get(fixtureA);
       assert.equal(file.contents.toString(), 'foo\n');
@@ -30,6 +30,17 @@ describe('mem-fs', function () {
       assert.equal(file.base, process.cwd());
       assert.equal(file.relative, fixtureA);
       assert.equal(file.path, path.resolve(fixtureA));
+    });
+
+    it('file should not exist in memory', function () {
+      var exists = this.store.existsInMemory(fixtureA);
+      assert.equal(exists, false);
+    });
+
+    it('file should exist in memory after getting it', function () {
+      var file = this.store.get(fixtureA);
+      var exists = this.store.existsInMemory(fixtureA);
+      assert.equal(exists, true);
     });
 
     it('get/modify/add a file', function () {
