@@ -13,7 +13,7 @@ var coffeeFile = new File({
   cwd: '/',
   base: '/test/',
   path: '/test/file.coffee',
-  contents: new Buffer('test = 123')
+  contents: Buffer.from('test = 123')
 });
 
 describe('mem-fs', function () {
@@ -45,7 +45,7 @@ describe('mem-fs', function () {
 
     it('get/modify/add a file', function () {
       var file = this.store.get(fixtureA);
-      file.contents = new Buffer('bar');
+      file.contents = Buffer.from('bar');
       this.store.add(file);
       var file2 = this.store.get(fixtureA);
       assert.equal(file2.contents.toString(), 'bar');
