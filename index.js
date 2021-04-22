@@ -4,7 +4,7 @@ var path = require('path');
 var util = require('util');
 var vinylFile = require('vinyl-file');
 var File = require('vinyl');
-var through = require('through2');
+const { PassThrough } = require('stream')
 
 exports.create = function () {
   var store = {};
@@ -58,9 +58,9 @@ exports.create = function () {
   };
 
   Store.prototype.stream = function () {
-    var stream = through.obj();
+    const stream = new PassThrough({objectMode: true, autoDestroy: true});
     setImmediate(function () {
-      this.each(stream.write.bind(stream));
+      this.each((file) => stream.write(file));
       stream.end();
     }.bind(this));
     return stream;
