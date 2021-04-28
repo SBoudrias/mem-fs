@@ -42,3 +42,15 @@ store.add(coffeeFile);
 ### Iterating over the file system
 
 Using `store#each(cb(file, index))`, you can iterate over every file stored in the file system.
+
+### Get all files
+
+Using `store#all()`, you can get every file stored in the file system.
+
+### Check existence in the file system
+
+Using `store#existsInMemory()`, you can check if the file already exists in the file system without loading it from disk.
+
+### Stream every file stored in the file system
+
+Using `store#stream()`, you can create a stream with every file stored in the file system.

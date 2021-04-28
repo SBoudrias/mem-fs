@@ -57,6 +57,10 @@ exports.create = function () {
     return this;
   };
 
+  Store.prototype.all = function () {
+    return Object.values(store);
+  };
+
   Store.prototype.stream = function () {
     const stream = new PassThrough({objectMode: true, autoDestroy: true});
     setImmediate(function () {
