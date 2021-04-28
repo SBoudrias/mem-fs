@@ -110,6 +110,17 @@ describe('mem-fs', function () {
     });
   });
 
+  describe('#all()', function () {
+    beforeEach(function() {
+      this.store.get(fixtureA);
+      this.store.get(fixtureB);
+    });
+
+    it('returns an array of every file contained', function () {
+      assert.deepEqual(this.store.all(), [this.store.get(fixtureA), this.store.get(fixtureB)]);
+    });
+  });
+
   describe('#stream()', function () {
     beforeEach(function() {
       this.store.get(fixtureA);
