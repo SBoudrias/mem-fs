@@ -9,9 +9,12 @@
   "author": "Simon Boudrias",
   "license": "MIT",
   "files": [
-    "index.js"
+    "dist/index.js"
   ],
   "dependencies": {
+    "@types/vinyl": "^2.0.4",
+    "@types/vinyl-file": "^3.0.0",
+    "typescript": "^4.2.4",
     "vinyl": "^2.0.1",
     "vinyl-file": "^3.0.0"
   },

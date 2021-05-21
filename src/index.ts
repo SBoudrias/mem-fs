@@ -1,12 +1,11 @@
-'use strict';
-var events = require('events');
-var path = require('path');
-var util = require('util');
-var vinylFile = require('vinyl-file');
-var File = require('vinyl');
-const { PassThrough } = require('stream')
+import events from 'events';
+import path from 'path';
+import util from 'util';
+import vinylFile from 'vinyl-file';
+import File from 'vinyl';
+import { PassThrough } from 'stream';
 
-exports.create = function () {
+export const create = function () {
   var store = {};
 
   function createFile(filepath) {
