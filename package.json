@@ -3,14 +3,14 @@
   "version": "2.1.0",
   "description": "Simple in-memory vinyl file store",
   "scripts": {
-    "test": "mocha"
+    "test": "mocha",
+    "prepublish": "tsc"
   },
   "repository": "SBoudrias/mem-fs",
   "author": "Simon Boudrias",
   "license": "MIT",
-  "files": [
-    "dist/index.js"
-  ],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "dependencies": {
     "@types/vinyl": "^2.0.4",
     "@types/vinyl-file": "^3.0.0",
