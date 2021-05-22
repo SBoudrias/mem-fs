@@ -3,7 +3,7 @@
   "version": "2.1.0",
   "description": "Simple in-memory vinyl file store",
   "scripts": {
-    "test": "mocha",
+    "test": "tsc && mocha",
     "prepublish": "tsc"
   },
   "repository": "SBoudrias/mem-fs",
@@ -12,13 +12,13 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "dependencies": {
-    "typescript": "^4.2.4",
     "vinyl": "^2.0.1",
     "vinyl-file": "^3.0.0"
   },
   "devDependencies": {
     "@types/vinyl": "^2.0.4",
     "@types/vinyl-file": "^3.0.0",
+    "typescript": "^4.2.4",
     "mocha": "^8.3.2"
   },
   "engines": {
