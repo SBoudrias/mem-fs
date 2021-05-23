@@ -4,7 +4,7 @@
   "description": "Simple in-memory vinyl file store",
   "scripts": {
     "test": "tsc && mocha",
-    "prepublish": "tsc"
+    "prepare": "tsc"
   },
   "repository": "SBoudrias/mem-fs",
   "author": "Simon Boudrias",
