@@ -11,6 +11,10 @@
   "license": "MIT",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist/index.js",
+    "dist/index.d.ts"
+  ],
   "dependencies": {
     "vinyl": "^2.0.1",
     "vinyl-file": "^3.0.0"
