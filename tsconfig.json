@@ -1,10 +1,8 @@
 {
     "compilerOptions": {
         "declaration": true,
-        "esModuleInterop": true,
         "outDir": "./dist",
         "allowJs": true,
-        "skipLibCheck": true,
         "strict": true,
         "target": "es5"
     },
