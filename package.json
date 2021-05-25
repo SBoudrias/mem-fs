@@ -17,11 +17,11 @@
   ],
   "dependencies": {
     "@types/node": "^15.6.1",
+    "@types/vinyl": "^2.0.4",
     "vinyl": "^2.0.1",
     "vinyl-file": "^3.0.0"
   },
   "devDependencies": {
-    "@types/vinyl": "^2.0.4",
     "@types/vinyl-file": "^3.0.0",
     "mocha": "^8.3.2",
     "npm-which": "^3.0.1",
