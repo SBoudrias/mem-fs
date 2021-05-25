@@ -3,7 +3,7 @@
         "noEmit": true,
         "paths": {
             "mem-fs": [
-                "../.."
+                ".."
             ]
         },
         "module": "CommonJS",

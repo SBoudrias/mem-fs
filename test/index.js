@@ -145,22 +145,4 @@ describe('mem-fs', function () {
       });
     });
   });
-
-  describe('type-declaration', function() {
-    function evalProject(fileName) {
-      return child_process.spawnSync(npmWhich(__dirname).sync('tsc'), ["-p", fileName]);
-    }
-
-    it('works with `esModuleInterop` disabled', function () {
-      this.slow(15 * 1000);
-      this.timeout(20 * 1000);
-      assert.strictEqual(evalProject(path.join(__dirname, "fixtures", "tsconfig.default.json")).status, 0);
-    });
-
-    it('works with `esModuleInterop` enabled', function () {
-      this.slow(15 * 1000);
-      this.timeout(20 * 1000);
-      assert.strictEqual(evalProject(path.join(__dirname, "fixtures", "tsconfig.esModuleInterop.json")).status, 0);
-    })
-  });
 });

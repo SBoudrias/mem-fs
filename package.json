@@ -3,7 +3,7 @@
   "version": "2.2.0",
   "description": "Simple in-memory vinyl file store",
   "scripts": {
-    "test": "tsc && mocha",
+    "test": "tsc && mocha && tsc -b ./type-test/tsconfig.build.json",
     "prepare": "tsc"
   },
   "repository": "SBoudrias/mem-fs",
