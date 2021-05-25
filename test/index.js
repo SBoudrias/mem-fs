@@ -1,6 +1,8 @@
 'use strict';
 
 var assert = require('assert');
+var child_process = require('child_process');
+var npmWhich = require('npm-which');
 var path = require('path');
 var File = require('vinyl');
 
@@ -17,7 +19,7 @@ var coffeeFile = new File({
 });
 
 describe('mem-fs', function () {
-  beforeEach(function() {
+  beforeEach(function () {
     process.chdir(__dirname);
     this.store = memFs.create();
   });
@@ -142,5 +144,23 @@ describe('mem-fs', function () {
         done();
       });
     });
+  });
+
+  describe('type-declaration', function() {
+    function evalProject(fileName) {
+      return child_process.spawnSync(npmWhich(__dirname).sync('tsc'), ["-p", fileName]);
+    }
+
+    it('works with `esModuleInterop` disabled', function () {
+      this.slow(15 * 1000);
+      this.timeout(20 * 1000);
+      assert.strictEqual(evalProject(path.join(__dirname, "fixtures", "tsconfig.default.json")).status, 0);
+    });
+
+    it('works with `esModuleInterop` enabled', function () {
+      this.slow(15 * 1000);
+      this.timeout(20 * 1000);
+      assert.strictEqual(evalProject(path.join(__dirname, "fixtures", "tsconfig.esModuleInterop.json")).status, 0);
+    })
   });
 });
