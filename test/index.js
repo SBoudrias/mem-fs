@@ -1,8 +1,6 @@
 'use strict';
 
 var assert = require('assert');
-var child_process = require('child_process');
-var npmWhich = require('npm-which');
 var path = require('path');
 var File = require('vinyl');
 
