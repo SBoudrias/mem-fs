@@ -17,7 +17,7 @@ var coffeeFile = new File({
 });
 
 describe('mem-fs', function () {
-  beforeEach(function() {
+  beforeEach(function () {
     process.chdir(__dirname);
     this.store = memFs.create();
   });
