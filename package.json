@@ -16,7 +16,7 @@
     "dist/index.d.ts"
   ],
   "dependencies": {
-    "@types/node": "^15.6.1",
+    "@types/node": "^15.6.2",
     "@types/vinyl": "^2.0.4",
     "vinyl": "^2.0.1",
     "vinyl-file": "^3.0.0"
