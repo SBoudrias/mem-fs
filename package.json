@@ -17,7 +17,7 @@
   ],
   "dependencies": {
     "@types/node": "^15.6.2",
-    "@types/vinyl": "^2.0.4",
+    "@types/vinyl": "^2.0.5",
     "vinyl": "^2.0.1",
     "vinyl-file": "^3.0.0"
   },
