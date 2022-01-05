@@ -3,7 +3,7 @@
   "version": "2.2.1",
   "description": "Simple in-memory vinyl file store",
   "scripts": {
-    "test": "tsc && mocha && tsc -b ./type-test/tsconfig.build.json",
+    "test": "eslint . && tsc && mocha && tsc -b ./type-test/tsconfig.build.json",
     "prepare": "tsc"
   },
   "repository": "SBoudrias/mem-fs",
@@ -23,7 +23,12 @@
   },
   "devDependencies": {
     "@types/vinyl-file": "^3.0.0",
+    "eslint": "^8.6.0",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-config-xo": "^0.39.0",
+    "eslint-plugin-prettier": "^4.0.0",
     "mocha": "^8.3.2",
+    "prettier": "^2.5.1",
     "typescript": "^4.2.4"
   },
   "engines": {
