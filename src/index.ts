@@ -9,7 +9,7 @@ function createFile(filepath: string) {
     cwd: process.cwd(),
     base: process.cwd(),
     path: filepath,
-    contents: null
+    contents: null,
   });
 }
 
@@ -54,10 +54,10 @@ export class Store extends EventEmitter {
     return Object.values(this.store);
   }
 
-  stream(): PassThrough {
+  stream(filter: (file: File) => boolean = () => true): PassThrough {
     const stream = new PassThrough({ objectMode: true, autoDestroy: true });
     setImmediate(() => {
-      this.each((file: File) => stream.write(file));
+      this.each((file: File) => filter(file) && stream.write(file));
       stream.end();
     });
 
@@ -67,4 +67,4 @@ export class Store extends EventEmitter {
 
 export function create(): Store {
   return new Store();
-};
+}
