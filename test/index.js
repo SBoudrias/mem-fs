@@ -152,7 +152,9 @@ describe('mem-fs', () => {
     it('returns an object stream for each filtered file', function (done) {
       let index = 0;
       const files = [fixtureA, fixtureB];
-      const stream = this.store.stream((file) => file.path.endsWith('file-a.txt'));
+      const stream = this.store.stream({
+        filter: (file) => file.path.endsWith('file-a.txt'),
+      });
 
       stream.on('data', (file) => {
         assert.equal(path.resolve(files[index]), file.path);
