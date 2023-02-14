@@ -1,6 +1,6 @@
 {
   "name": "mem-fs",
-  "version": "2.2.1",
+  "version": "2.3.0",
   "description": "Simple in-memory vinyl file store",
   "scripts": {
     "test": "eslint . && tsc && mocha && tsc -b ./type-test/tsconfig.build.json",
