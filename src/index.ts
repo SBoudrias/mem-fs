@@ -13,23 +13,23 @@ function createFile(filepath: string) {
   });
 }
 
-export type StreamOptions = { filter?: (file: File) => boolean };
+export type StreamOptions<StoreFile extends { path: string; } = File>  = { filter?: (file: StoreFile) => boolean };
 
-export class Store extends EventEmitter {
-  private store: Record<string, File> = {};
+export class Store<StoreFile extends { path: string; } = File> extends EventEmitter {
+  private store: Record<string, StoreFile> = {};
 
-  private load(filepath: string): File {
-    let file: File;
+  private load(filepath: string): StoreFile {
+    let file: StoreFile;
     try {
-      file = vinylFile.readSync(filepath);
+      file = vinylFile.readSync(filepath) as any;
     } catch (err) {
-      file = createFile(filepath);
+      file = createFile(filepath) as any;
     }
     this.store[filepath] = file;
     return file;
   }
 
-  get(filepath: string): File {
+  get(filepath: string): StoreFile {
     filepath = path.resolve(filepath);
     return this.store[filepath] || this.load(filepath);
   }
@@ -39,27 +39,27 @@ export class Store extends EventEmitter {
     return !!this.store[filepath];
   }
 
-  add(file: File): this {
+  add(file: StoreFile): this {
     this.store[file.path] = file;
     this.emit('change', file.path);
     return this;
   }
 
-  each(onEach: (file: File, index: number) => void): this {
+  each(onEach: (file: StoreFile, index: number) => void): this {
     Object.keys(this.store).forEach((key, index) => {
       onEach(this.store[key], index);
     });
     return this;
   }
 
-  all(): File[] {
+  all(): StoreFile[] {
     return Object.values(this.store);
   }
 
-  stream({ filter = () => true }: StreamOptions = {}): PassThrough {
+  stream({ filter = () => true }: StreamOptions<StoreFile> = {}): PassThrough {
     const stream = new PassThrough({ objectMode: true, autoDestroy: true });
     setImmediate(() => {
-      this.each((file: File) => filter(file) && stream.write(file));
+      this.each((file: StoreFile) => filter(file) && stream.write(file));
       stream.end();
     });
 
