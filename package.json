@@ -3,8 +3,9 @@
   "version": "2.3.0",
   "description": "Simple in-memory vinyl file store",
   "scripts": {
-    "test": "eslint . && tsc && mocha && tsc -b ./type-test/tsconfig.build.json",
-    "prepare": "tsc"
+    "test": "vitest --run --no-threads && tsc && tsc -b ./type-test/tsconfig.build.json",
+    "prepare": "tsc",
+    "pretest": "eslint"
   },
   "repository": "SBoudrias/mem-fs",
   "author": "Simon Boudrias",
@@ -27,9 +28,9 @@
     "eslint-config-prettier": "^8.3.0",
     "eslint-config-xo": "^0.39.0",
     "eslint-plugin-prettier": "^4.0.0",
-    "mocha": "^8.3.2",
     "prettier": "^2.5.1",
-    "typescript": "^4.2.4"
+    "typescript": "^4.2.4",
+    "vitest": "^0.30.1"
   },
   "engines": {
     "node": ">=12"
