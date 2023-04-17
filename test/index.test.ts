@@ -16,7 +16,7 @@ const coffeeFile = new File({
 });
 
 describe('mem-fs', () => {
-  let store : Store;
+  let store: Store;
 
   beforeEach(() => {
     process.chdir(__dirname);
@@ -74,23 +74,25 @@ describe('mem-fs', () => {
     });
 
     describe('change event', () => {
-      it('is triggered', () => new Promise<void>(resolve => {
+      it('is triggered', () =>
+        new Promise<void>((resolve) => {
           store.on('change', () => {
             const file = store.get('/test/file.coffee');
             assert.equal(file.contents?.toString(), 'test = 123');
             resolve();
           });
-          
+
           store.add(coffeeFile);
         }));
 
-      it('passes the file name to the listener', () => new Promise<void>( resolve => {
+      it('passes the file name to the listener', () =>
+        new Promise<void>((resolve) => {
           store.on('change', (eventFile) => {
-          assert.equal(eventFile, coffeeFile.path);
-          resolve();
-        });
-        store.add(coffeeFile);
-      }));
+            assert.equal(eventFile, coffeeFile.path);
+            resolve();
+          });
+          store.add(coffeeFile);
+        }));
     });
   });
 
@@ -124,10 +126,7 @@ describe('mem-fs', () => {
     });
 
     it('returns an array of every file contained', () => {
-      assert.deepEqual(store.all(), [
-        store.get(fixtureA),
-        store.get(fixtureB),
-      ]);
+      assert.deepEqual(store.all(), [store.get(fixtureA), store.get(fixtureB)]);
     });
   });
 
@@ -137,35 +136,36 @@ describe('mem-fs', () => {
       store.get(fixtureB);
     });
 
-    it('returns an object stream for each file contained', () => new Promise<void>(resolve => {
+    it('returns an object stream for each file contained', () =>
+      new Promise<void>((resolve) => {
+        let index = 0;
+        const files = [fixtureA, fixtureB];
+        const stream = store.stream();
 
-      let index = 0;
-      const files = [fixtureA, fixtureB];
-      const stream = store.stream();
+        stream.on('data', (file) => {
+          assert.equal(path.resolve(files[index]), file.path);
+          index++;
+        });
 
-      stream.on('data', (file) => {
-        assert.equal(path.resolve(files[index]), file.path);
-        index++;
-      });
+        stream.on('end', () => {
+          assert.equal(index, 2);
+          resolve();
+        });
+      }));
 
-      stream.on('end', () => {
-        assert.equal(index, 2);
-        resolve();
-      });
-    }));
-
-    it('returns an object stream for each filtered file', () => new Promise<void>(resolve => {
+    it('returns an object stream for each filtered file', () =>
+      new Promise<void>((resolve) => {
         let index = 0;
         const files = [fixtureA, fixtureB];
         const stream = store.stream({
           filter: (file) => file.path.endsWith('file-a.txt'),
         });
-  
+
         stream.on('data', (file) => {
           assert.equal(path.resolve(files[index]), file.path);
           index++;
         });
-  
+
         stream.on('end', () => {
           assert.equal(index, 1);
           resolve();

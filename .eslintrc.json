@@ -1,5 +1,10 @@
 {
-  "extends": ["xo", "prettier", "eslint:recommended", "plugin:@typescript-eslint/recommended"],
+  "extends": [
+    "xo",
+    "prettier",
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended"
+  ],
   "parser": "@typescript-eslint/parser",
   "env": {
     "node": true
