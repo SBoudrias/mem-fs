@@ -4,10 +4,6 @@ import { vinylFileSync } from 'vinyl-file';
 import File from 'vinyl';
 import { PassThrough } from 'stream';
 
-type BaseFile = {
-  path: string;
-}
-
 function createFile(filepath: string) {
   return new File({
     cwd: process.cwd(),
@@ -17,9 +13,9 @@ function createFile(filepath: string) {
   });
 }
 
-export type StreamOptions<StoreFile extends BaseFile = File>  = { filter?: (file: StoreFile) => boolean };
+export type StreamOptions<StoreFile extends { path: string; } = File>  = { filter?: (file: StoreFile) => boolean };
 
-export class Store<StoreFile extends BaseFile = File> extends EventEmitter {
+export class Store<StoreFile extends { path: string; } = File> extends EventEmitter {
   public createFile: (filepath: string) => StoreFile;
   private store: Record<string, StoreFile> = {};
 
@@ -78,6 +74,6 @@ export class Store<StoreFile extends BaseFile = File> extends EventEmitter {
   }
 }
 
-export function create<StoreFile extends BaseFile = File>(): Store<StoreFile> {
+export function create<StoreFile extends { path: string; } = File>(): Store<StoreFile> {
   return new Store<StoreFile>();
 }
