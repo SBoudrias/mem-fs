@@ -1,11 +1,8 @@
-mem-fs
-=============
+# mem-fs
 
 Simple in-memory vinyl file store.
 
-
-Usage
--------------
+## Usage
 
 ### Loading a file
 
@@ -33,7 +30,7 @@ var coffeeFile = new File({
   cwd: '/',
   base: '/test/',
   path: '/test/file.coffee',
-  contents: new Buffer('test = 123')
+  contents: new Buffer('test = 123'),
 });
 
 store.add(coffeeFile);

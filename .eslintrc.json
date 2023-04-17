@@ -1,22 +1,14 @@
 {
-  "extends": ["xo", "prettier"],
+  "extends": [
+    "xo",
+    "prettier",
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended"
+  ],
+  "parser": "@typescript-eslint/parser",
   "env": {
-    "mocha": true,
-    "jest": true,
     "node": true
   },
-  "rules": {
-    "default-param-last": "off",
-    "padding-line-between-statements": "off",
-    "no-eq-null": "off",
-    "eqeqeq": [
-      "error",
-      "always",
-      {
-        "null": "ignore"
-      }
-    ],
-    "prettier/prettier": "error"
-  },
-  "plugins": ["prettier"]
+  "plugins": ["prettier", "@typescript-eslint"],
+  "root": true
 }

@@ -1,65 +1,73 @@
 import { EventEmitter } from 'events';
-import path = require('path');
-import vinylFile = require('vinyl-file');
-import File = require('vinyl');
+import path from 'path';
+import { vinylFileSync } from 'vinyl-file';
+import File from 'vinyl';
 import { PassThrough } from 'stream';
 
-function createFile(filepath: string) {
-  return new File({
-    cwd: process.cwd(),
-    base: process.cwd(),
-    path: filepath,
-    contents: null,
-  });
+function loadFile(filepath: string): File {
+  try {
+    return vinylFileSync(filepath);
+  } catch (err) {
+    return new File({
+      cwd: process.cwd(),
+      base: process.cwd(),
+      path: filepath,
+      contents: null,
+    });
+  }
 }
 
-export type StreamOptions = { filter?: (file: File) => boolean };
+export type StreamOptions<StoreFile extends { path: string } = File> = {
+  filter?: (file: StoreFile) => boolean;
+};
 
-export class Store extends EventEmitter {
-  private store: Record<string, File> = {};
+export class Store<StoreFile extends { path: string } = File> extends EventEmitter {
+  public loadFile: (filepath: string) => StoreFile;
+  private store = new Map<string, StoreFile>();
 
-  private load(filepath: string): File {
-    let file: File;
-    try {
-      file = vinylFile.readSync(filepath);
-    } catch (err) {
-      file = createFile(filepath);
-    }
-    this.store[filepath] = file;
+  constructor(options?: { loadFile?: (filepath: string) => StoreFile }) {
+    super();
+    this.loadFile =
+      options?.loadFile ?? (loadFile as unknown as (filepath: string) => StoreFile);
+  }
+
+  private load(filepath: string): StoreFile {
+    const file: StoreFile = this.loadFile(filepath);
+    this.store.set(filepath, file);
     return file;
   }
 
-  get(filepath: string): File {
+  get(filepath: string): StoreFile {
     filepath = path.resolve(filepath);
-    return this.store[filepath] || this.load(filepath);
+    return this.store.get(filepath) || this.load(filepath);
   }
 
   existsInMemory(filepath: string): boolean {
     filepath = path.resolve(filepath);
-    return !!this.store[filepath];
+    return this.store.has(filepath);
   }
 
-  add(file: File): this {
-    this.store[file.path] = file;
+  add(file: StoreFile): this {
+    this.store.set(file.path, file);
     this.emit('change', file.path);
     return this;
   }
 
-  each(onEach: (file: File, index: number) => void): this {
-    Object.keys(this.store).forEach((key, index) => {
-      onEach(this.store[key], index);
+  each(onEach: (file: StoreFile) => void): this {
+    this.store.forEach((file) => {
+      onEach(file);
     });
     return this;
   }
 
-  all(): File[] {
-    return Object.values(this.store);
+  all(): StoreFile[] {
+    return Array.from(this.store.values());
   }
 
-  stream({ filter = () => true }: StreamOptions = {}): PassThrough {
+  stream({ filter = () => true }: StreamOptions<StoreFile> = {}): PassThrough {
     const stream = new PassThrough({ objectMode: true, autoDestroy: true });
     setImmediate(() => {
-      this.each((file: File) => filter(file) && stream.write(file));
+      this.each((file: StoreFile) => filter(file) && stream.write(file));
       stream.end();
     });
 
@@ -67,6 +75,6 @@ export class Store extends EventEmitter {
   }
 }
 
-export function create(): Store {
-  return new Store();
+export function create<StoreFile extends { path: string } = File>(): Store<StoreFile> {
+  return new Store<StoreFile>();
 }
