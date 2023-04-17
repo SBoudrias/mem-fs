@@ -25,16 +25,17 @@ export class Store<StoreFile extends BaseFile = File> extends EventEmitter {
 
   constructor(options?: { createFile?: (filepath: string) => StoreFile }) {
     super();
-    this.createFile = options?.createFile as any ?? createFile;
+    this.createFile = options?.createFile as unknown as (filepath: string) => StoreFile ?? createFile;
   }
 
   private load(filepath: string): StoreFile {
     let file: StoreFile;
     try {
-      file = vinylFileSync(filepath) as any;
+      file = vinylFileSync(filepath) as unknown as StoreFile;
     } catch (err) {
-      file = this.createFile(filepath) as any;
+      file = this.createFile(filepath) as unknown as StoreFile;
     }
+
     this.store[filepath] = file;
     return file;
   }
@@ -46,7 +47,7 @@ export class Store<StoreFile extends BaseFile = File> extends EventEmitter {
 
   existsInMemory(filepath: string): boolean {
     filepath = path.resolve(filepath);
-    return !!this.store[filepath];
+    return Boolean(this.store[filepath]);
   }
 
   add(file: StoreFile): this {

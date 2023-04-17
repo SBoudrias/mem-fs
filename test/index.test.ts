@@ -18,13 +18,13 @@ const coffeeFile = new File({
 describe('mem-fs', () => {
   let store : Store;
 
-  beforeEach(function () {
+  beforeEach(() => {
     process.chdir(__dirname);
     store = create();
   });
 
   describe('#get() / #add() / #existsInMemory()', () => {
-    it('load file from disk', function () {
+    it('load file from disk', () => {
       const file = store.get(fixtureA);
       assert.equal(file.contents?.toString(), 'foo\n');
       assert.equal(file.cwd, process.cwd());
@@ -33,18 +33,18 @@ describe('mem-fs', () => {
       assert.equal(file.path, path.resolve(fixtureA));
     });
 
-    it('file should not exist in memory', function () {
+    it('file should not exist in memory', () => {
       const exists = store.existsInMemory(fixtureA);
       assert.equal(exists, false);
     });
 
-    it('file should exist in memory after getting it', function () {
+    it('file should exist in memory after getting it', () => {
       store.get(fixtureA);
       const exists = store.existsInMemory(fixtureA);
       assert.equal(exists, true);
     });
 
-    it('get/modify/add a file', function () {
+    it('get/modify/add a file', () => {
       const file = store.get(fixtureA);
       file.contents = Buffer.from('bar');
       store.add(file);
@@ -52,13 +52,13 @@ describe('mem-fs', () => {
       assert.equal(file2.contents?.toString(), 'bar');
     });
 
-    it('retrieve file from memory', function () {
+    it('retrieve file from memory', () => {
       store.add(coffeeFile);
       const file = store.get('/test/file.coffee');
       assert.equal(file.contents?.toString(), 'test = 123');
     });
 
-    it('returns empty file reference if file does not exist', function () {
+    it('returns empty file reference if file does not exist', () => {
       const file = store.get(absentFile);
       assert.equal(file.contents, null);
       assert.equal(file.cwd, process.cwd());
@@ -69,13 +69,12 @@ describe('mem-fs', () => {
   });
 
   describe('#add()', () => {
-    it('is chainable', function () {
+    it('is chainable', () => {
       assert.equal(store.add(coffeeFile), store);
     });
 
     describe('change event', () => {
-      it('is triggered', function () {
-        return new Promise<void>(resolve => {
+      it('is triggered', () => new Promise<void>(resolve => {
           store.on('change', () => {
             const file = store.get('/test/file.coffee');
             assert.equal(file.contents?.toString(), 'test = 123');
@@ -83,49 +82,48 @@ describe('mem-fs', () => {
           });
           
           store.add(coffeeFile);
-        });
-      });
+        }));
 
-      it('passes the file name to the listener', function () {
-        return new Promise<void>( resolve => {
+      it('passes the file name to the listener', () => new Promise<void>( resolve => {
           store.on('change', (eventFile) => {
           assert.equal(eventFile, coffeeFile.path);
           resolve();
         });
         store.add(coffeeFile);
-      });
-      });
+      }));
     });
   });
 
   describe('#each()', () => {
-    beforeEach(function () {
+    beforeEach(() => {
       store.get(fixtureA);
       store.get(fixtureB);
     });
 
-    it('iterates over every file', function () {
+    it('iterates over every file', () => {
       const files = [fixtureA, fixtureB];
       store.each((file, index) => {
         assert.equal(path.resolve(files[index]), file.path);
       });
     });
 
-    it('is chainable', function () {
+    it('is chainable', () => {
       assert.equal(
-        store.each(() => {}),
+        store.each(() => {
+          // Empty
+        }),
         store
       );
     });
   });
 
   describe('#all()', () => {
-    beforeEach(function () {
+    beforeEach(() => {
       store.get(fixtureA);
       store.get(fixtureB);
     });
 
-    it('returns an array of every file contained', function () {
+    it('returns an array of every file contained', () => {
       assert.deepEqual(store.all(), [
         store.get(fixtureA),
         store.get(fixtureB),
@@ -134,13 +132,12 @@ describe('mem-fs', () => {
   });
 
   describe('#stream()', () => {
-    beforeEach(function () {
+    beforeEach(() => {
       store.get(fixtureA);
       store.get(fixtureB);
     });
 
-    it('returns an object stream for each file contained', function () {
-      return new Promise<void>(resolve => {
+    it('returns an object stream for each file contained', () => new Promise<void>(resolve => {
 
       let index = 0;
       const files = [fixtureA, fixtureB];
@@ -155,11 +152,9 @@ describe('mem-fs', () => {
         assert.equal(index, 2);
         resolve();
       });
-    })
-  });
+    }));
 
-    it('returns an object stream for each filtered file', function () {
-      return new Promise<void>(resolve => {
+    it('returns an object stream for each filtered file', () => new Promise<void>(resolve => {
         let index = 0;
         const files = [fixtureA, fixtureB];
         const stream = store.stream({
@@ -175,7 +170,6 @@ describe('mem-fs', () => {
           assert.equal(index, 1);
           resolve();
         });
-      })
-    });
+      }));
   });
 });
