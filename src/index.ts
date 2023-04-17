@@ -4,34 +4,35 @@ import { vinylFileSync } from 'vinyl-file';
 import File from 'vinyl';
 import { PassThrough } from 'stream';
 
-function createFile(filepath: string) {
-  return new File({
-    cwd: process.cwd(),
-    base: process.cwd(),
-    path: filepath,
-    contents: null,
-  });
+function loadFile(filepath: string): File {
+  try {
+    return vinylFileSync(filepath);
+  } catch (err) {
+    return new File({
+      cwd: process.cwd(),
+      base: process.cwd(),
+      path: filepath,
+      contents: null,
+    });
+  }
 }
 
-export type StreamOptions<StoreFile extends { path: string; } = File>  = { filter?: (file: StoreFile) => boolean };
+export type StreamOptions<StoreFile extends { path: string } = File> = {
+  filter?: (file: StoreFile) => boolean;
+};
 
-export class Store<StoreFile extends { path: string; } = File> extends EventEmitter {
-  public createFile: (filepath: string) => StoreFile;
+export class Store<StoreFile extends { path: string } = File> extends EventEmitter {
+  public loadFile: (filepath: string) => StoreFile;
   private store: Record<string, StoreFile> = {};
 
-  constructor(options?: { createFile?: (filepath: string) => StoreFile }) {
+  constructor(options?: { loadFile?: (filepath: string) => StoreFile }) {
     super();
-    this.createFile = options?.createFile as unknown as (filepath: string) => StoreFile ?? createFile;
+    this.loadFile =
+      (options?.loadFile as unknown as (filepath: string) => StoreFile) ?? loadFile;
   }
 
   private load(filepath: string): StoreFile {
-    let file: StoreFile;
-    try {
-      file = vinylFileSync(filepath) as unknown as StoreFile;
-    } catch (err) {
-      file = this.createFile(filepath) as unknown as StoreFile;
-    }
-
+    const file: StoreFile = this.loadFile(filepath);
     this.store[filepath] = file;
     return file;
   }
@@ -74,6 +75,6 @@ export class Store<StoreFile extends { path: string; } = File> extends EventEmit
   }
 }
 
-export function create<StoreFile extends { path: string; } = File>(): Store<StoreFile> {
+export function create<StoreFile extends { path: string } = File>(): Store<StoreFile> {
   return new Store<StoreFile>();
 }
