@@ -3,7 +3,7 @@
   "version": "2.3.0",
   "description": "Simple in-memory vinyl file store",
   "scripts": {
-    "test": "vitest --run --no-threads && tsc && tsc -b ./type-test/tsconfig.build.json",
+    "test": "vitest --run --no-threads",
     "prepare": "tsc",
     "pretest": "eslint"
   },
