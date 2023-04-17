@@ -1,4 +1,4 @@
-import { describe, beforeEach, it } from 'vitest';
+import { describe, beforeEach, it, expect } from 'vitest';
 import assert from 'assert';
 import path from 'path';
 import File from 'vinyl';
@@ -103,10 +103,12 @@ describe('mem-fs', () => {
     });
 
     it('iterates over every file', () => {
-      const files = [fixtureA, fixtureB];
-      store.each((file, index) => {
-        assert.equal(path.resolve(files[index]), file.path);
+      const files: string[] = [fixtureA, fixtureB];
+      const eachFiles: string[] = [];
+      store.each((file) => {
+        eachFiles.push(file.path);
       });
+      expect(eachFiles).toMatchObject(files.map((file) => path.resolve(file)));
     });
 
     it('is chainable', () => {
