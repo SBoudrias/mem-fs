@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
-import path = require('path');
-import vinylFile = require('vinyl-file');
-import File = require('vinyl');
+import path from 'path';
+import { vinylFileSync } from 'vinyl-file';
+import File from 'vinyl';
 import { PassThrough } from 'stream';
 
 function createFile(filepath: string) {

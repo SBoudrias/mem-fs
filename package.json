@@ -2,6 +2,7 @@
   "name": "mem-fs",
   "version": "2.3.0",
   "description": "Simple in-memory vinyl file store",
+  "type": "module",
   "scripts": {
     "test": "vitest --run --no-threads",
     "prepare": "tsc",
@@ -19,17 +20,16 @@
   "dependencies": {
     "@types/node": "^15.6.2",
     "@types/vinyl": "^2.0.4",
-    "vinyl": "^2.0.1",
-    "vinyl-file": "^3.0.0"
+    "vinyl": "^3.0.0",
+    "vinyl-file": "^5.0.0"
   },
   "devDependencies": {
-    "@types/vinyl-file": "^3.0.0",
     "eslint": "^8.6.0",
     "eslint-config-prettier": "^8.3.0",
     "eslint-config-xo": "^0.39.0",
     "eslint-plugin-prettier": "^4.0.0",
     "prettier": "^2.5.1",
-    "typescript": "^4.2.4",
+    "typescript": "^5.0.4",
     "vitest": "^0.30.1"
   },
   "engines": {

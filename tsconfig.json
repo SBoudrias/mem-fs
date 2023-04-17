@@ -1,16 +1,24 @@
 {
-    "compilerOptions": {
-        "declaration": true,
-        "outDir": "./dist",
-        "allowJs": true,
-        "strict": true,
-        "target": "es5"
-    },
-    "include": [
-        "./src/**/*"
-    ],
-    "exclude": [
-        "node_modules",
-        "dist"
-    ]
+  "include": ["src/**/*"],
+  "compilerOptions": {
+    /* Language and Environment */
+    "target": "ES2022" /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */,
+    "lib": ["ES2022"] /* Specify a set of bundled library declaration files that describe the target runtime environment. */,
+    "types": [],
+
+    /* Modules */
+    "module": "node16" /* Specify what module code is generated. */,
+    "rootDir": "./src" /* Specify the root folder within your source files. */,
+
+    /* Emit */
+    "outDir": "./dist" /* Specify an output folder for all emitted files. */,
+    "declaration": true,
+
+    /* Interop Constraints */
+    "esModuleInterop": true /* Emit additional JavaScript to ease support for importing CommonJS modules. This enables 'allowSyntheticDefaultImports' for type compatibility. */,
+
+    /* Type Checking */
+    "strict": true /* Enable all strict type-checking options. */
+  }
 }
+  
