@@ -9,8 +9,9 @@ Simple in-memory vinyl file store.
 You access a file using `store#get()` method. If the file is in memory, it will be used. Otherwise, we'll load the file from the file-system.
 
 ```js
-var store = require('mem-fs').create();
+import { create } from 'mem-fs'
 
+const store = create();
 store.get('/test/file.txt');
 ```
 
@@ -23,16 +24,17 @@ Trying to get a directory or any invalid files will also return an empty Vinyl f
 You update file references by using `store#add()` method. This method take a `vinyl` file object as parameter.
 
 ```js
-var File = require('vinyl');
-var store = require('mem-fs').create();
+import File from 'vinyl';
+import { create } from 'mem-fs';
 
-var coffeeFile = new File({
+const coffeeFile = new File({
   cwd: '/',
   base: '/test/',
   path: '/test/file.coffee',
   contents: new Buffer('test = 123'),
 });
 
+const store = create();
 store.add(coffeeFile);
 ```
 
