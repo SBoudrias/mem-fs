@@ -28,7 +28,7 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
   constructor(options?: { loadFile?: (filepath: string) => StoreFile }) {
     super();
     this.loadFile =
-      (options?.loadFile as unknown as (filepath: string) => StoreFile) ?? loadFile;
+      options?.loadFile ?? (loadFile as unknown as (filepath: string) => StoreFile);
   }
 
   private load(filepath: string): StoreFile {
