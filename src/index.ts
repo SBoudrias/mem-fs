@@ -4,6 +4,10 @@ import { vinylFileSync } from 'vinyl-file';
 import File from 'vinyl';
 import { PassThrough } from 'stream';
 
+type BaseFile = {
+  path: string;
+}
+
 function createFile(filepath: string) {
   return new File({
     cwd: process.cwd(),
@@ -13,17 +17,23 @@ function createFile(filepath: string) {
   });
 }
 
-export type StreamOptions<StoreFile extends { path: string; } = File>  = { filter?: (file: StoreFile) => boolean };
+export type StreamOptions<StoreFile extends BaseFile = File>  = { filter?: (file: StoreFile) => boolean };
 
-export class Store<StoreFile extends { path: string; } = File> extends EventEmitter {
+export class Store<StoreFile extends BaseFile = File> extends EventEmitter {
+  public createFile: (filepath: string) => StoreFile;
   private store: Record<string, StoreFile> = {};
+
+  constructor(options?: { createFile?: (filepath: string) => StoreFile }) {
+    super();
+    this.createFile = options?.createFile as any ?? createFile;
+  }
 
   private load(filepath: string): StoreFile {
     let file: StoreFile;
     try {
-      file = vinylFile.readSync(filepath) as any;
+      file = vinylFileSync(filepath) as any;
     } catch (err) {
-      file = createFile(filepath) as any;
+      file = this.createFile(filepath) as any;
     }
     this.store[filepath] = file;
     return file;
@@ -67,6 +77,6 @@ export class Store<StoreFile extends { path: string; } = File> extends EventEmit
   }
 }
 
-export function create(): Store {
-  return new Store();
+export function create<StoreFile extends BaseFile = File>(): Store<StoreFile> {
+  return new Store<StoreFile>();
 }
