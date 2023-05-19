@@ -2,7 +2,7 @@ import { EventEmitter } from 'events';
 import path from 'path';
 import { vinylFileSync } from 'vinyl-file';
 import File from 'vinyl';
-import { PassThrough } from 'stream';
+import { Readable } from 'stream';
 
 function loadFile(filepath: string): File {
   try {
@@ -64,14 +64,16 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
     return Array.from(this.store.values());
   }
 
-  stream({ filter = () => true }: StreamOptions<StoreFile> = {}): PassThrough {
-    const stream = new PassThrough({ objectMode: true, autoDestroy: true });
-    setImmediate(() => {
-      this.each((file: StoreFile) => filter(file) && stream.write(file));
-      stream.end();
-    });
+  stream({ filter = () => true }: StreamOptions<StoreFile> = {}): Readable {
+    function* iterablefilter(iterable: IterableIterator<StoreFile>) {
+      for (const item of iterable) {
+        if (filter(item)) {
+          yield item;
+        }
+      }
+    }
 
-    return stream;
+    return Readable.from(iterablefilter(this.store.values()));
   }
 }
 
