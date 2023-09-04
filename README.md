@@ -9,7 +9,7 @@ Simple in-memory vinyl file store.
 You access a file using `store#get()` method. If the file is in memory, it will be used. Otherwise, we'll load the file from the file-system.
 
 ```js
-import { create } from 'mem-fs'
+import { create } from 'mem-fs';
 
 const store = create();
 store.get('/test/file.txt');
@@ -49,6 +49,10 @@ Using `store#all()`, you can get every file stored in the file system.
 ### Check existence in the file system
 
 Using `store#existsInMemory()`, you can check if the file already exists in the file system without loading it from disk.
+
+### Refresh files
+
+Using `store#refresh()`, you can update one or all file path references after a `stream()`.
 
 ### Stream every file stored in the file system
 

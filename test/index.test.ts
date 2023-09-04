@@ -132,6 +132,49 @@ describe('mem-fs', () => {
     });
   });
 
+  describe('#refresh()', () => {
+    it('is chainable', () => {
+      assert.equal(store.add(coffeeFile), store);
+    });
+
+    beforeEach(() => {
+      store.get(fixtureA);
+      store.get(fixtureB);
+    });
+
+    it('passing the filename, refreshes a single file', () => {
+      const renamed = '.renamed';
+      const fixtureAFile = store.get(fixtureA);
+      fixtureAFile.path += renamed;
+
+      const fixtureBFile = store.get(fixtureB);
+      fixtureBFile.path += renamed;
+
+      store.refresh(fixtureA);
+
+      expect(store.get(fixtureA)).not.toBe(fixtureAFile);
+      expect(store.get(fixtureA + renamed)).toBe(fixtureAFile);
+      expect(store.get(fixtureB + renamed)).not.toBe(fixtureBFile);
+      expect(store.get(fixtureB)).toBe(fixtureBFile);
+    });
+
+    it('refreshes multiple files', () => {
+      const renamed = '.renamed';
+      const fixtureAFile = store.get(fixtureA);
+      fixtureAFile.path += renamed;
+
+      const fixtureBFile = store.get(fixtureB);
+      fixtureBFile.path += renamed;
+
+      store.refresh();
+
+      expect(store.get(fixtureA)).not.toBe(fixtureAFile);
+      expect(store.get(fixtureA + renamed)).toBe(fixtureAFile);
+      expect(store.get(fixtureB)).not.toBe(fixtureBFile);
+      expect(store.get(fixtureB + renamed)).toBe(fixtureBFile);
+    });
+  });
+
   describe('#stream()', () => {
     beforeEach(() => {
       store.get(fixtureA);

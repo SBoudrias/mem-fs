@@ -53,6 +53,18 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
     return this;
   }
 
+  refresh(filepath?: string): this {
+    for (const each of filepath ? [path.resolve(filepath)] : this.store.keys()) {
+      const file = this.store.get(each);
+      if (file && file.path !== each) {
+        this.store.delete(each);
+        this.store.set(file.path, file);
+      }
+    }
+
+    return this;
+  }
+
   each(onEach: (file: StoreFile) => void): this {
     this.store.forEach((file) => {
       onEach(file);
