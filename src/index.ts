@@ -7,6 +7,9 @@ import { pipeline } from 'stream/promises';
 
 export type FileTransform<File> = PipelineTransform<PipelineTransform<any, File>, File>;
 
+export const isFileTransform = (transform: any) =>
+  typeof transform === 'function' || 'readable' in transform || 'writable' in transform;
+
 function loadFile(filepath: string): File {
   try {
     return vinylFileSync(filepath);
@@ -79,10 +82,12 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
     return Readable.from(iterablefilter(this.store.values()));
   }
 
+  // eslint-disable-next-line lines-between-class-members
   pipeline(
     options: StreamOptions<StoreFile>,
     ...transforms: FileTransform<StoreFile>[]
   ): Promise<void>;
+  // eslint-disable-next-line lines-between-class-members
   pipeline(...transforms: FileTransform<StoreFile>[]): Promise<void>;
   async pipeline(
     options?: StreamOptions<StoreFile> | FileTransform<StoreFile>,
@@ -90,13 +95,10 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
   ): Promise<void> {
     const newStore = new Map<string, StoreFile>();
     let filter: ((file: StoreFile) => boolean) | undefined;
-    if (
-      options &&
-      (typeof options !== 'object' || 'readable' in options || 'writable' in options)
-    ) {
+    if (options && isFileTransform(options)) {
       transforms = [options as FileTransform<StoreFile>, ...transforms];
-    } else {
-      filter = options?.filter;
+    } else if (options) {
+      filter = (options as StreamOptions<StoreFile>).filter;
     }
 
     filter = filter ?? (transforms.length === 0 ? () => false : () => true);
