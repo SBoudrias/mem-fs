@@ -2,7 +2,8 @@ import { EventEmitter } from 'events';
 import path from 'path';
 import { vinylFileSync } from 'vinyl-file';
 import File from 'vinyl';
-import { Readable } from 'stream';
+import { type PipelineTransform, Readable, Duplex } from 'stream';
+import { pipeline } from 'stream/promises';
 
 function loadFile(filepath: string): File {
   try {
@@ -74,6 +75,38 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
     }
 
     return Readable.from(iterablefilter(this.store.values()));
+  }
+
+  async pipeline(
+    options?: StreamOptions<StoreFile>,
+    ...transforms: PipelineTransform<PipelineTransform<any, StoreFile>, StoreFile>[]
+  ): Promise<void> {
+    const newStore = new Map<string, StoreFile>();
+    const filter =
+      options?.filter ?? (transforms.length === 0 ? () => false : () => true);
+
+    function* iterablefilter(iterable: IterableIterator<StoreFile>) {
+      for (const item of iterable) {
+        if (filter(item)) {
+          yield item;
+        } else {
+          newStore.set(item.path, item);
+        }
+      }
+    }
+
+    await pipeline(
+      Readable.from(iterablefilter(this.store.values())) as any,
+      ...(transforms as any),
+      // eslint-disable-next-line require-yield
+      Duplex.from(async (generator: AsyncGenerator<StoreFile>) => {
+        for await (const file of generator) {
+          newStore.set(file.path, file);
+        }
+      })
+    );
+
+    this.store = newStore;
   }
 }
 

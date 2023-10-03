@@ -4,6 +4,7 @@ import path from 'path';
 import File from 'vinyl';
 
 import { create, Store } from '../src/index';
+import { Duplex } from 'stream';
 
 const fixtureA = 'fixtures/file-a.txt';
 const fixtureB = 'fixtures/file-b.txt';
@@ -173,5 +174,46 @@ describe('mem-fs', () => {
           resolve();
         });
       }));
+  });
+
+  describe('#pipeline()', () => {
+    beforeEach(() => {
+      store.get(fixtureA);
+      store.get(fixtureB);
+    });
+
+    it('creates a new store with all same files', async () => {
+      const oldFiles = store.all();
+      const oldStore = (store as any).store;
+
+      await store.pipeline();
+
+      expect(oldFiles).toEqual(store.all());
+      expect(oldStore).not.toBe((store as any).store);
+    });
+
+    it('creates a new store with updated files', async () => {
+      const fileB = store.get(fixtureB);
+      fileB.path += '.renamed';
+
+      await store.pipeline();
+
+      expect(store.existsInMemory(fixtureB)).toBeFalsy();
+      expect(store.existsInMemory(fixtureB + '.renamed')).toBeTruthy();
+    });
+
+    it('creates a new store with filtered files', async () => {
+      await store.pipeline(
+        { filter: (file) => file.path.includes(fixtureB) },
+        Duplex.from(async (generator: AsyncGenerator<File>) => {
+          for await (const file of generator) {
+            // Remove all files
+          }
+        })
+      );
+
+      expect(store.existsInMemory(fixtureA)).toBeTruthy();
+      expect(store.existsInMemory(fixtureB)).toBeFalsy();
+    });
   });
 });
