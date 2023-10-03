@@ -215,5 +215,18 @@ describe('mem-fs', () => {
       expect(store.existsInMemory(fixtureA)).toBeTruthy();
       expect(store.existsInMemory(fixtureB)).toBeFalsy();
     });
+
+    it('options should be optional', async () => {
+      await store.pipeline(
+        Duplex.from(async (generator: AsyncGenerator<File>) => {
+          for await (const file of generator) {
+            // Remove all files
+          }
+        })
+      );
+
+      expect(store.existsInMemory(fixtureA)).toBeFalsy();
+      expect(store.existsInMemory(fixtureB)).toBeFalsy();
+    });
   });
 });

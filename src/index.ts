@@ -5,6 +5,8 @@ import File from 'vinyl';
 import { type PipelineTransform, Readable, Duplex } from 'stream';
 import { pipeline } from 'stream/promises';
 
+export type FileTransform<File> = PipelineTransform<PipelineTransform<any, File>, File>;
+
 function loadFile(filepath: string): File {
   try {
     return vinylFileSync(filepath);
@@ -77,17 +79,31 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
     return Readable.from(iterablefilter(this.store.values()));
   }
 
+  pipeline(
+    options: StreamOptions<StoreFile>,
+    ...transforms: FileTransform<StoreFile>[]
+  ): Promise<void>;
+  pipeline(...transforms: FileTransform<StoreFile>[]): Promise<void>;
   async pipeline(
-    options?: StreamOptions<StoreFile>,
-    ...transforms: PipelineTransform<PipelineTransform<any, StoreFile>, StoreFile>[]
+    options?: StreamOptions<StoreFile> | FileTransform<StoreFile>,
+    ...transforms: FileTransform<StoreFile>[]
   ): Promise<void> {
     const newStore = new Map<string, StoreFile>();
-    const filter =
-      options?.filter ?? (transforms.length === 0 ? () => false : () => true);
+    let filter: ((file: StoreFile) => boolean) | undefined;
+    if (
+      options &&
+      (typeof options !== 'object' || 'readable' in options || 'writable' in options)
+    ) {
+      transforms = [options as FileTransform<StoreFile>, ...transforms];
+    } else {
+      filter = options?.filter;
+    }
+
+    filter = filter ?? (transforms.length === 0 ? () => false : () => true);
 
     function* iterablefilter(iterable: IterableIterator<StoreFile>) {
       for (const item of iterable) {
-        if (filter(item)) {
+        if (filter!(item)) {
           yield item;
         } else {
           newStore.set(item.path, item);
