@@ -206,7 +206,7 @@ describe('mem-fs', () => {
       await store.pipeline(
         { filter: (file) => file.path.includes(fixtureB) },
         Duplex.from(async (generator: AsyncGenerator<File>) => {
-          for await (const file of generator) {
+          for await (const _file of generator) {
             // Remove all files
           }
         })
@@ -216,10 +216,27 @@ describe('mem-fs', () => {
       expect(store.existsInMemory(fixtureB)).toBeFalsy();
     });
 
+    it('does not create a new map if refresh is disabled', async () => {
+      const oldStore = (store as any).store;
+
+      await store.pipeline(
+        { refresh: false },
+        Duplex.from(async (generator: AsyncGenerator<File>) => {
+          for await (const _file of generator) {
+            // Remove all files
+          }
+        })
+      );
+
+      expect(store.existsInMemory(fixtureA)).toBeTruthy();
+      expect(store.existsInMemory(fixtureB)).toBeTruthy();
+      expect(oldStore).toBe((store as any).store);
+    });
+
     it('options should be optional', async () => {
       await store.pipeline(
         Duplex.from(async (generator: AsyncGenerator<File>) => {
-          for await (const file of generator) {
+          for await (const _file of generator) {
             // Remove all files
           }
         })

@@ -27,6 +27,11 @@ export type StreamOptions<StoreFile extends { path: string } = File> = {
   filter?: (file: StoreFile) => boolean;
 };
 
+export type PipelineOptions<StoreFile extends { path: string } = File> = {
+  filter?: (file: StoreFile) => boolean;
+  refresh?: boolean;
+};
+
 export class Store<StoreFile extends { path: string } = File> extends EventEmitter {
   public loadFile: (filepath: string) => StoreFile;
   private store = new Map<string, StoreFile>();
@@ -82,33 +87,38 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
     return Readable.from(iterablefilter(this.store.values()));
   }
 
-  // eslint-disable-next-line lines-between-class-members
   pipeline(
-    options: StreamOptions<StoreFile>,
+    options: PipelineOptions<StoreFile>,
     ...transforms: FileTransform<StoreFile>[]
   ): Promise<void>;
   // eslint-disable-next-line lines-between-class-members
   pipeline(...transforms: FileTransform<StoreFile>[]): Promise<void>;
   async pipeline(
-    options?: StreamOptions<StoreFile> | FileTransform<StoreFile>,
+    options?: PipelineOptions<StoreFile> | FileTransform<StoreFile>,
     ...transforms: FileTransform<StoreFile>[]
   ): Promise<void> {
-    const newStore = new Map<string, StoreFile>();
     let filter: ((file: StoreFile) => boolean) | undefined;
+    let refresh = true;
+
     if (options && isFileTransform(options)) {
       transforms = [options as FileTransform<StoreFile>, ...transforms];
     } else if (options) {
-      filter = (options as StreamOptions<StoreFile>).filter;
+      const pipelineOptions = options as PipelineOptions<StoreFile>;
+      filter = pipelineOptions.filter;
+      if (pipelineOptions.refresh !== undefined) {
+        refresh = pipelineOptions.refresh;
+      }
     }
 
-    filter = filter ?? (transforms.length === 0 ? () => false : () => true);
+    const newStore = refresh ? new Map<string, StoreFile>() : undefined;
+    const fileFilter = filter ?? (transforms.length === 0 ? () => false : () => true);
 
     function* iterablefilter(iterable: IterableIterator<StoreFile>) {
       for (const item of iterable) {
-        if (filter!(item)) {
+        if (fileFilter(item)) {
           yield item;
         } else {
-          newStore.set(item.path, item);
+          newStore?.set(item.path, item);
         }
       }
     }
@@ -119,12 +129,14 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
       // eslint-disable-next-line require-yield
       Duplex.from(async (generator: AsyncGenerator<StoreFile>) => {
         for await (const file of generator) {
-          newStore.set(file.path, file);
+          newStore?.set(file.path, file);
         }
       })
     );
 
-    this.store = newStore;
+    if (newStore) {
+      this.store = newStore;
+    }
   }
 }
 
