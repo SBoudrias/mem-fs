@@ -90,12 +90,6 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
     return Readable.from(iterablefilter(this.store.values()));
   }
 
-  pipeline(
-    options: PipelineOptions<StoreFile>,
-    ...transforms: FileTransform<StoreFile>[]
-  ): Promise<void>;
-  // eslint-disable-next-line lines-between-class-members
-  pipeline(...transforms: FileTransform<StoreFile>[]): Promise<void>;
   async pipeline(
     options?: PipelineOptions<StoreFile> | FileTransform<StoreFile>,
     ...transforms: FileTransform<StoreFile>[]
