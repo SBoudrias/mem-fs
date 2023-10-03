@@ -5,10 +5,13 @@ import File from 'vinyl';
 import { type PipelineTransform, Readable, Duplex } from 'stream';
 import { pipeline } from 'stream/promises';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type FileTransform<File> = PipelineTransform<PipelineTransform<any, File>, File>;
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const isFileTransform = (transform: any) =>
-  typeof transform === 'function' || 'readable' in transform || 'writable' in transform;
+  typeof transform === 'function' ||
+  (typeof transform === 'object' && ('readable' in transform || 'writable' in transform));
 
 function loadFile(filepath: string): File {
   try {
@@ -124,9 +127,10 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
     }
 
     await pipeline(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       Readable.from(iterablefilter(this.store.values())) as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ...(transforms as any),
-      // eslint-disable-next-line require-yield
       Duplex.from(async (generator: AsyncGenerator<StoreFile>) => {
         for await (const file of generator) {
           newStore?.set(file.path, file);
