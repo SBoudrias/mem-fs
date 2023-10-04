@@ -116,7 +116,7 @@ describe('mem-fs', () => {
         store.each(() => {
           // Empty
         }),
-        store
+        store,
       );
     });
   });
