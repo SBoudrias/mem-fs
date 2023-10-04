@@ -4,7 +4,7 @@ import { vinylFileSync } from 'vinyl-file';
 import File from 'vinyl';
 import { Readable } from 'stream';
 
-function loadFile(filepath: string): File {
+export function loadFile(filepath: string): File {
   try {
     return vinylFileSync(filepath);
   } catch (err) {
