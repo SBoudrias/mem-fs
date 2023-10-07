@@ -8,10 +8,21 @@ import { pipeline } from 'stream/promises';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type FileTransform<File> = PipelineTransform<PipelineTransform<any, File>, File>;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const isFileTransform = (transform: any) =>
-  typeof transform === 'function' ||
+export type StreamOptions<StoreFile extends { path: string } = File> = {
+  filter?: (file: StoreFile) => boolean;
+};
+
+export type PipelineOptions<StoreFile extends { path: string } = File> = {
+  filter?: (file: StoreFile) => boolean;
+  refresh?: boolean;
+};
+
+export function isFileTransform<StoreFile extends { path: string } = File>(
+  transform: PipelineOptions<StoreFile> | FileTransform<StoreFile> | undefined,
+): transform is FileTransform<StoreFile> {
+ return typeof transform === 'function' ||
   (typeof transform === 'object' && ('readable' in transform || 'writable' in transform));
+}
 
 function loadFile(filepath: string): File {
   try {
@@ -25,15 +36,6 @@ function loadFile(filepath: string): File {
     });
   }
 }
-
-export type StreamOptions<StoreFile extends { path: string } = File> = {
-  filter?: (file: StoreFile) => boolean;
-};
-
-export type PipelineOptions<StoreFile extends { path: string } = File> = {
-  filter?: (file: StoreFile) => boolean;
-  refresh?: boolean;
-};
 
 export class Store<StoreFile extends { path: string } = File> extends EventEmitter {
   public loadFile: (filepath: string) => StoreFile;
@@ -97,13 +99,12 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
     let filter: ((file: StoreFile) => boolean) | undefined;
     let refresh = true;
 
-    if (options && isFileTransform(options)) {
-      transforms = [options as FileTransform<StoreFile>, ...transforms];
+    if (isFileTransform(options)) {
+      transforms = [options, ...transforms];
     } else if (options) {
-      const pipelineOptions = options as PipelineOptions<StoreFile>;
-      filter = pipelineOptions.filter;
-      if (pipelineOptions.refresh !== undefined) {
-        refresh = pipelineOptions.refresh;
+      filter = options.filter;
+      if (options.refresh !== undefined) {
+        refresh = options.refresh;
       }
     }
 
