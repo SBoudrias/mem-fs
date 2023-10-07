@@ -10,5 +10,6 @@
     "node": true
   },
   "plugins": ["prettier", "@typescript-eslint"],
+  "ignorePatterns": ["dist", "node_modules"],
   "root": true
 }
