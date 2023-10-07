@@ -13,10 +13,7 @@
   "license": "MIT",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "files": [
-    "dist/index.js",
-    "dist/index.d.ts"
-  ],
+  "files": ["dist/"],
   "dependencies": {
     "@types/node": "^18.18.3",
     "@types/vinyl": "^2.0.8",
@@ -35,6 +32,6 @@
     "vitest": "^0.34.6"
   },
   "engines": {
-    "node": ">=16.13.0"
+    "node": ">=18.0.0"
   }
 }
