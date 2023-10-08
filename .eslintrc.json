@@ -11,5 +11,8 @@
   },
   "plugins": ["prettier", "@typescript-eslint"],
   "ignorePatterns": ["dist", "node_modules"],
+  "rules": {
+    "prettier/prettier": "error"
+  },
   "root": true
 }

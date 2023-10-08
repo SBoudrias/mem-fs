@@ -213,7 +213,7 @@ describe('mem-fs', () => {
           for await (const _file of generator) {
             // Remove all files
           }
-        })
+        }),
       );
 
       expect(store.existsInMemory(fixtureA)).toBeTruthy();
@@ -231,7 +231,7 @@ describe('mem-fs', () => {
           for await (const _file of generator) {
             // Remove all files
           }
-        })
+        }),
       );
 
       expect(store.existsInMemory(fixtureA)).toBeTruthy();
@@ -247,7 +247,7 @@ describe('mem-fs', () => {
           for await (const _file of generator) {
             // Remove all files
           }
-        })
+        }),
       );
 
       expect(store.existsInMemory(fixtureA)).toBeFalsy();

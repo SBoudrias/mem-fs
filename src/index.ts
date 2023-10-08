@@ -20,8 +20,11 @@ export type PipelineOptions<StoreFile extends { path: string } = File> = {
 export function isFileTransform<StoreFile extends { path: string } = File>(
   transform: PipelineOptions<StoreFile> | FileTransform<StoreFile> | undefined,
 ): transform is FileTransform<StoreFile> {
- return typeof transform === 'function' ||
-  (typeof transform === 'object' && ('readable' in transform || 'writable' in transform));
+  return (
+    typeof transform === 'function' ||
+    (typeof transform === 'object' &&
+      ('readable' in transform || 'writable' in transform))
+  );
 }
 
 export function loadFile(filepath: string): File {
@@ -130,7 +133,7 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
         for await (const file of generator) {
           newStore?.set(file.path, file);
         }
-      })
+      }),
     );
 
     if (newStore) {
