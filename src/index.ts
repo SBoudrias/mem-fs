@@ -137,7 +137,25 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
     );
 
     if (newStore) {
+      const oldStore = this.store;
       this.store = newStore;
+
+      for (const file of this.store.keys()) {
+        if (oldStore.has(file)) {
+          const newFile = this.store.get(file);
+          const oldFile = oldStore.get(file);
+          oldStore.delete(file);
+          if (newFile !== oldFile) {
+            this.emit('change', file);
+          }
+        } else {
+          this.emit('change', file);
+        }
+      }
+
+      for (const oldFile of oldStore.keys()) {
+        this.emit('change', oldFile);
+      }
     }
   }
 }
