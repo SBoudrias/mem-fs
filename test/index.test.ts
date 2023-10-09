@@ -293,5 +293,26 @@ describe('mem-fs', () => {
       // Emits event for changed file
       expect(listener).toBeCalledWith(resolve(fixtureA));
     });
+
+    describe('allowOverride option', () => {
+      it('throws on duplicated files by default', async () => {
+        const fileA = store.get(fixtureA);
+        const fileB = store.get(fixtureB);
+        fileB.path = fileA.path;
+
+        await expect(store.pipeline()).rejects.toThrowError(/^Duplicated file/);
+      });
+
+      it('overrides duplicated files', async () => {
+        const fileA = store.get(fixtureA);
+        const fileB = store.get(fixtureB);
+        fileB.path = fileA.path;
+
+        await store.pipeline({ allowOverride: true });
+
+        expect(store.existsInMemory(fixtureA)).toBeTruthy();
+        expect(store.existsInMemory(fixtureB)).toBeFalsy();
+      });
+    });
   });
 });
