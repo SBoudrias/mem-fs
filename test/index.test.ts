@@ -24,6 +24,17 @@ describe('mem-fs', () => {
     store = create();
   });
 
+  it('accepts loadFileOption', () => {
+    const customLoader = new Store<{ path: string; contents: Buffer }>({
+      loadFile: (filepath) => ({
+        path: resolve(filepath),
+        contents: Buffer.from('a content'),
+      }),
+    });
+    customLoader.get('foo.txt');
+    expect(customLoader.get('foo.txt').contents.toString()).toMatch('a content');
+  });
+
   describe('#get() / #add() / #existsInMemory()', () => {
     it('load file from disk', () => {
       const file = store.get(fixtureA);
