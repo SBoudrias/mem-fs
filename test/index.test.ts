@@ -1,6 +1,6 @@
-import { describe, beforeEach, it, expect } from 'vitest';
+import { describe, beforeEach, it, expect, vi } from 'vitest';
 import assert from 'assert';
-import path from 'path';
+import path, { resolve } from 'path';
 import File from 'vinyl';
 
 import { create, Store } from '../src/index';
@@ -22,6 +22,17 @@ describe('mem-fs', () => {
   beforeEach(() => {
     process.chdir(__dirname);
     store = create();
+  });
+
+  it('accepts loadFileOption', () => {
+    const customLoader = new Store<{ path: string; contents: Buffer }>({
+      loadFile: (filepath) => ({
+        path: resolve(filepath),
+        contents: Buffer.from('a content'),
+      }),
+    });
+    customLoader.get('foo.txt');
+    expect(customLoader.get('foo.txt').contents.toString()).toMatch('a content');
   });
 
   describe('#get() / #add() / #existsInMemory()', () => {
@@ -252,6 +263,56 @@ describe('mem-fs', () => {
 
       expect(store.existsInMemory(fixtureA)).toBeFalsy();
       expect(store.existsInMemory(fixtureB)).toBeFalsy();
+    });
+
+    it('emits events', async () => {
+      const listener = vi.fn();
+      store.on('change', listener);
+
+      const fileB = store.get(fixtureB);
+      fileB.path += '.renamed';
+
+      await store.pipeline(
+        Duplex.from(async function* (generator: AsyncGenerator<File>) {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          for await (const file of generator) {
+            if (file.path.endsWith('.renamed')) {
+              yield file;
+            } else {
+              yield file.clone();
+            }
+          }
+        }),
+      );
+
+      expect(listener).toBeCalled();
+      // Emits event for files only in oldStore
+      expect(listener).toBeCalledWith(resolve(fixtureB));
+      // Emits event for files only in newStore
+      expect(listener).toBeCalledWith(resolve(fixtureB + '.renamed'));
+      // Emits event for changed file
+      expect(listener).toBeCalledWith(resolve(fixtureA));
+    });
+
+    describe('allowOverride option', () => {
+      it('throws on duplicated files by default', async () => {
+        const fileA = store.get(fixtureA);
+        const fileB = store.get(fixtureB);
+        fileB.path = fileA.path;
+
+        await expect(store.pipeline()).rejects.toThrowError(/^Duplicated file/);
+      });
+
+      it('overrides duplicated files', async () => {
+        const fileA = store.get(fixtureA);
+        const fileB = store.get(fixtureB);
+        fileB.path = fileA.path;
+
+        await store.pipeline({ allowOverride: true });
+
+        expect(store.existsInMemory(fixtureA)).toBeTruthy();
+        expect(store.existsInMemory(fixtureB)).toBeFalsy();
+      });
     });
   });
 });

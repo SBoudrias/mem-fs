@@ -15,6 +15,7 @@ export type StreamOptions<StoreFile extends { path: string } = File> = {
 export type PipelineOptions<StoreFile extends { path: string } = File> = {
   filter?: (file: StoreFile) => boolean;
   refresh?: boolean;
+  allowOverride?: boolean;
 };
 
 export function isFileTransform<StoreFile extends { path: string } = File>(
@@ -101,6 +102,7 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
   ): Promise<void> {
     let filter: ((file: StoreFile) => boolean) | undefined;
     let refresh = true;
+    let allowOverride = false;
 
     if (isFileTransform(options)) {
       transforms = [options, ...transforms];
@@ -109,17 +111,31 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
       if (options.refresh !== undefined) {
         refresh = options.refresh;
       }
+
+      if (options.allowOverride !== undefined) {
+        allowOverride = options.allowOverride;
+      }
     }
 
     const newStore = refresh ? new Map<string, StoreFile>() : undefined;
     const fileFilter = filter ?? (transforms.length === 0 ? () => false : () => true);
+
+    const addFile = newStore
+      ? (file: StoreFile) => {
+          if (!allowOverride && newStore.has(file.path)) {
+            throw new Error(`Duplicated file ${file.path} was emitted.`);
+          }
+
+          newStore.set(file.path, file);
+        }
+      : undefined;
 
     function* iterablefilter(iterable: IterableIterator<StoreFile>) {
       for (const item of iterable) {
         if (fileFilter(item)) {
           yield item;
         } else {
-          newStore?.set(item.path, item);
+          addFile?.(item);
         }
       }
     }
@@ -131,13 +147,31 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
       ...(transforms as any),
       Duplex.from(async (generator: AsyncGenerator<StoreFile>) => {
         for await (const file of generator) {
-          newStore?.set(file.path, file);
+          addFile?.(file);
         }
       }),
     );
 
     if (newStore) {
+      const oldStore = this.store;
       this.store = newStore;
+
+      for (const file of this.store.keys()) {
+        if (oldStore.has(file)) {
+          const newFile = this.store.get(file);
+          const oldFile = oldStore.get(file);
+          oldStore.delete(file);
+          if (newFile !== oldFile) {
+            this.emit('change', file);
+          }
+        } else {
+          this.emit('change', file);
+        }
+      }
+
+      for (const oldFile of oldStore.keys()) {
+        this.emit('change', oldFile);
+      }
     }
   }
 }
