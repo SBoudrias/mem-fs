@@ -14,6 +14,7 @@ export type StreamOptions<StoreFile extends { path: string } = File> = {
 
 export type PipelineOptions<StoreFile extends { path: string } = File> = {
   filter?: (file: StoreFile) => boolean;
+  resolveConflict?: (current: StoreFile, newFile: StoreFile) => StoreFile;
   refresh?: boolean;
   allowOverride?: boolean;
 };
@@ -101,8 +102,10 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
     ...transforms: FileTransform<StoreFile>[]
   ): Promise<void> {
     let filter: ((file: StoreFile) => boolean) | undefined;
+    let resolveConflict:
+      | ((current: StoreFile, newFile: StoreFile) => StoreFile)
+      | undefined;
     let refresh = true;
-    let allowOverride = false;
 
     if (isFileTransform(options)) {
       transforms = [options, ...transforms];
@@ -112,8 +115,10 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
         refresh = options.refresh;
       }
 
-      if (options.allowOverride !== undefined) {
-        allowOverride = options.allowOverride;
+      if (options.resolveConflict !== undefined) {
+        resolveConflict = options.resolveConflict;
+      } else if (options.allowOverride !== undefined) {
+        resolveConflict = (_current, newFile) => newFile;
       }
     }
 
@@ -122,8 +127,13 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
 
     const addFile = newStore
       ? (file: StoreFile) => {
-          if (!allowOverride && newStore.has(file.path)) {
-            throw new Error(`Duplicated file ${file.path} was emitted.`);
+          const currentFile = newStore.get(file.path);
+          if (currentFile) {
+            if (!resolveConflict) {
+              throw new Error(`Duplicated file ${file.path} was emitted.`);
+            }
+
+            file = resolveConflict(currentFile, file);
           }
 
           newStore.set(file.path, file);

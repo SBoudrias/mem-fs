@@ -312,6 +312,24 @@ describe('mem-fs', () => {
 
         expect(store.existsInMemory(fixtureA)).toBeTruthy();
         expect(store.existsInMemory(fixtureB)).toBeFalsy();
+        expect(store.get(fixtureA).contents?.toString()).toMatch('foo2');
+      });
+    });
+
+    describe('resolveConflict option', () => {
+      it('allows to select current file and takes precedence over allowOverride', async () => {
+        const fileA = store.get(fixtureA);
+        const fileB = store.get(fixtureB);
+        fileB.path = fileA.path;
+
+        await store.pipeline({
+          resolveConflict: (current) => current,
+          allowOverride: true,
+        });
+
+        expect(store.existsInMemory(fixtureA)).toBeTruthy();
+        expect(store.existsInMemory(fixtureB)).toBeFalsy();
+        expect(store.get(fixtureA).contents?.toString()).toMatch('foo');
       });
     });
   });
