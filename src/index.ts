@@ -2,7 +2,7 @@ import { EventEmitter } from 'events';
 import path from 'path';
 import { vinylFileSync } from 'vinyl-file';
 import File from 'vinyl';
-import { type PipelineTransform, Readable, Duplex } from 'stream';
+import { type PipelineTransform, Readable, Transform } from 'stream';
 import { pipeline } from 'stream/promises';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -31,14 +31,14 @@ export function isFileTransform<StoreFile extends { path: string } = File>(
 
 export function loadFile(filepath: string): File {
   try {
-    return vinylFileSync(filepath);
+    return vinylFileSync(filepath) as unknown as File;
   } catch (err) {
     return new File({
       cwd: process.cwd(),
       base: process.cwd(),
       path: filepath,
       contents: null,
-    });
+    }) as unknown as File;
   }
 }
 
@@ -155,10 +155,12 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
       Readable.from(iterablefilter(this.store.values())) as any,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ...(transforms as any),
-      Duplex.from(async (generator: AsyncGenerator<StoreFile>) => {
-        for await (const file of generator) {
+      new Transform({
+        objectMode: true,
+        transform(file: StoreFile, _encoding, callback) {
           addFile?.(file);
-        }
+          callback(null);
+        },
       }),
     );
 
