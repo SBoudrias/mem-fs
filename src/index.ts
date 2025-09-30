@@ -4,6 +4,7 @@ import { vinylFileSync } from 'vinyl-file';
 import File from 'vinyl';
 import { type PipelineTransform, Readable, Transform } from 'stream';
 import { pipeline } from 'stream/promises';
+import fs from 'node:fs';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type FileTransform<File> = PipelineTransform<PipelineTransform<any, File>, File>;
@@ -30,9 +31,20 @@ export function isFileTransform<StoreFile extends { path: string } = File>(
 }
 
 export function loadFile(filepath: string): File {
+  const stat = fs.statSync(filepath, { throwIfNoEntry: false });
+  if (stat?.isDirectory?.()) {
+    return new File({
+      cwd: process.cwd(),
+      base: process.cwd(),
+      path: filepath,
+      stat,
+      contents: null,
+    }) as unknown as File;
+  }
+
   try {
     return vinylFileSync(filepath) as unknown as File;
-  } catch (err) {
+  } catch {
     return new File({
       cwd: process.cwd(),
       base: process.cwd(),
