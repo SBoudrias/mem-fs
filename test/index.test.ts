@@ -88,7 +88,6 @@ describe('mem-fs', () => {
     describe('change event', () => {
       it('is triggered', () =>
         new Promise<void>((resolve) => {
-          // eslint-disable-next-line max-nested-callbacks
           store.on('change', () => {
             const file = store.get('/test/file.coffee');
             assert.equal(file.contents?.toString(), 'test = 123');
@@ -274,7 +273,6 @@ describe('mem-fs', () => {
 
       await store.pipeline(
         Duplex.from(async function* (generator: AsyncGenerator<File>) {
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           for await (const file of generator) {
             if (file.path.endsWith('.renamed')) {
               yield file;
