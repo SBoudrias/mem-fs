@@ -1,0 +1,30 @@
+version: 2
+updates:
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: '@types/node'
+        versions: ['>=18']
+      - dependency-name: '*'
+        update-types: ['version-update:semver-minor', 'version-update:semver-patch']
+    groups:
+      vitest:
+        patterns:
+          - '@vitest/*'
+          - 'vitest'
+      linting:
+        patterns:
+          - '@typescript-eslint/*'
+          - 'eslint-*'
+          - 'eslint'
+          - 'prettier'
+          - 'typescript'
+
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
