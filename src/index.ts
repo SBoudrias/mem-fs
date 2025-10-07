@@ -32,7 +32,7 @@ export function isFileTransform<StoreFile extends { path: string } = File>(
 export function loadFile(filepath: string): File {
   try {
     return vinylFileSync(filepath) as unknown as File;
-  } catch (err) {
+  } catch {
     return new File({
       cwd: process.cwd(),
       base: process.cwd(),
