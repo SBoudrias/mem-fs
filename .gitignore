@@ -3,3 +3,4 @@ dist/
 .project
 *.tsbuildinfo
 coverage
+.claude/
