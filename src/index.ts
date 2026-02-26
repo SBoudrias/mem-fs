@@ -119,7 +119,7 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
       | undefined;
     let refresh = true;
 
-    if (isFileTransform(options)) {
+    if (isFileTransform<StoreFile>(options)) {
       transforms = [options, ...transforms];
     } else if (options) {
       filter = options.filter;
