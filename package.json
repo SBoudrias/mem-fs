@@ -19,18 +19,18 @@
   "dependencies": {
     "@types/node": ">=18",
     "@types/vinyl": "^2.0.12",
-    "vinyl": "^3.0.0",
+    "vinyl": "^3.0.1",
     "vinyl-file": "^5.0.0"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "^4.0.16",
-    "eslint": "^9.39.2",
+    "@vitest/coverage-v8": "^4.0.18",
+    "eslint": "^9.39.3",
     "eslint-config-prettier": "^10.1.8",
     "eslint-config-xo": "^0.49.0",
-    "prettier": "^3.0.3",
-    "typescript": "^5.2.2",
-    "typescript-eslint": "^8.32.1",
-    "vitest": "^4.0.16"
+    "prettier": "^3.8.1",
+    "typescript": "5.2.2",
+    "typescript-eslint": "^8.56.1",
+    "vitest": "^4.0.18"
   },
   "engines": {
     "node": ">=18.0.0"
