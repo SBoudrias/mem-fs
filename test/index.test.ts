@@ -298,7 +298,7 @@ describe('mem-fs', () => {
         const fileB = store.get(fixtureB);
         fileB.path = fileA.path;
 
-        await expect(store.pipeline()).rejects.toThrowError(/^Duplicated file/);
+        await expect(store.pipeline()).rejects.toThrowError(/^Duplicated file/v);
       });
 
       it('overrides duplicated files', async () => {
