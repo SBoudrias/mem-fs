@@ -28,7 +28,7 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-config-xo": "^0.49.0",
     "prettier": "^3.8.1",
-    "typescript": "5.2.2",
+    "typescript": "5.9.3",
     "typescript-eslint": "^8.56.1",
     "vitest": "^4.0.18"
   },
