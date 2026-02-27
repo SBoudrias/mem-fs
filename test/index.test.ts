@@ -63,7 +63,7 @@ describe('mem-fs', () => {
     const customLoader = new Store<{ path: string; contents: Buffer }>({
       loadFileAsync: () => Promise.reject(error),
     });
-    expect(customLoader.get('foo.txt', { async: true })).rejects.toThrow(error);
+    await expect(customLoader.get('foo.txt', { async: true })).rejects.toThrow(error);
   });
 
   it('consecutive async calls should not call loadFileAsync multiple times', async () => {
