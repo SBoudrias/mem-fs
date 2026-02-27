@@ -5,6 +5,7 @@ import File from 'vinyl';
 
 import { create, Store } from '../src/index';
 import { Duplex } from 'stream';
+import { setTimeout } from 'timers/promises';
 
 const fixtureA = 'fixtures/file-a.txt';
 const fixtureB = 'fixtures/file-b.txt';
@@ -31,13 +32,96 @@ describe('mem-fs', () => {
         contents: Buffer.from('a content'),
       }),
     });
-    customLoader.get('foo.txt');
     expect(customLoader.get('foo.txt').contents.toString()).toMatch('a content');
+  });
+
+  it('forwards errors from loadFile', () => {
+    const error = new Error('Sync error');
+    const customLoader = new Store<{ path: string; contents: Buffer }>({
+      loadFile() {
+        throw error;
+      },
+    });
+    expect(() => customLoader.get('foo.txt')).toThrow(error);
+  });
+
+  it('accepts loadFileAsyncOption', async () => {
+    const customLoader = new Store<{ path: string; contents: Buffer }>({
+      loadFileAsync: (filepath) =>
+        Promise.resolve({
+          path: resolve(filepath),
+          contents: Buffer.from('a content'),
+        }),
+    });
+    expect(
+      (await customLoader.get('foo.txt', { async: true })).contents.toString(),
+    ).toMatch('a content');
+  });
+
+  it('forwards errors from loadFileAsync', async () => {
+    const error = new Error('Async error');
+    const customLoader = new Store<{ path: string; contents: Buffer }>({
+      loadFileAsync: () => Promise.reject(error),
+    });
+    await expect(customLoader.get('foo.txt', { async: true })).rejects.toThrow(error);
+  });
+
+  it('consecutive async calls should not call loadFileAsync multiple times', async () => {
+    let loadFileCalled = false;
+    const customLoader = new Store<{ path: string; contents: Buffer }>({
+      async loadFileAsync(filepath) {
+        if (!loadFileCalled) {
+          loadFileCalled = true;
+          await setTimeout(100);
+          return {
+            path: resolve(filepath),
+            contents: Buffer.from('a content'),
+          };
+        }
+
+        throw new Error('Should not be called again');
+      },
+    });
+    const readFile = () =>
+      customLoader
+        .get('foo.txt', { async: true })
+        .then((file) => file.contents.toString());
+    await expect(Promise.all([readFile(), readFile()])).resolves.toMatchObject([
+      'a content',
+      'a content',
+    ]);
+  });
+
+  it('async call should load from memory if file is already loaded', async () => {
+    const customLoader = new Store<{ path: string; contents: Buffer }>({
+      loadFile(filepath) {
+        return {
+          path: resolve(filepath),
+          contents: Buffer.from('a content'),
+        };
+      },
+      async loadFileAsync() {
+        throw new Error('Should not be called');
+      },
+    });
+    customLoader.get('foo.txt');
+    expect(
+      (await customLoader.get('foo.txt', { async: true })).contents.toString(),
+    ).toMatch('a content');
   });
 
   describe('#get() / #add() / #existsInMemory()', () => {
     it('load file from disk', () => {
       const file = store.get(fixtureA);
+      assert.equal(file.contents?.toString(), 'foo\n');
+      assert.equal(file.cwd, process.cwd());
+      assert.equal(file.base, process.cwd());
+      assert.equal(file.relative, fixtureA);
+      assert.equal(file.path, path.resolve(fixtureA));
+    });
+
+    it('load file from disk (async)', async () => {
+      const file = await store.get(fixtureA, { async: true });
       assert.equal(file.contents?.toString(), 'foo\n');
       assert.equal(file.cwd, process.cwd());
       assert.equal(file.base, process.cwd());
@@ -52,6 +136,12 @@ describe('mem-fs', () => {
 
     it('file should exist in memory after getting it', () => {
       store.get(fixtureA);
+      const exists = store.existsInMemory(fixtureA);
+      assert.equal(exists, true);
+    });
+
+    it('file should exist in memory after getting it (async)', async () => {
+      await store.get(fixtureA, { async: true });
       const exists = store.existsInMemory(fixtureA);
       assert.equal(exists, true);
     });
@@ -72,6 +162,15 @@ describe('mem-fs', () => {
 
     it('returns empty file reference if file does not exist', () => {
       const file = store.get(absentFile);
+      assert.equal(file.contents, null);
+      assert.equal(file.cwd, process.cwd());
+      assert.equal(file.base, process.cwd());
+      assert.equal(file.relative, absentFile);
+      assert.equal(file.path, path.resolve(absentFile));
+    });
+
+    it('returns empty file reference if file does not exist (async)', async () => {
+      const file = await store.get(absentFile, { async: true });
       assert.equal(file.contents, null);
       assert.equal(file.cwd, process.cwd());
       assert.equal(file.base, process.cwd());
