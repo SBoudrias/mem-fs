@@ -91,6 +91,7 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
   public loadFile: (filepath: string) => StoreFile;
   public loadFileAsync: (filepath: string) => Promise<StoreFile>;
   private store = new Map<string, StoreFile>();
+  private asyncStore = new Map<string, Promise<StoreFile>>();
 
   constructor(options?: {
     loadFile?: (filepath: string) => StoreFile;
@@ -123,9 +124,19 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
   get(filepath: string, opts?: { async?: boolean }): StoreFile | Promise<StoreFile> {
     filepath = path.resolve(filepath);
     if (opts?.async) {
-      return this.store.has(filepath)
-        ? Promise.resolve(this.store.get(filepath)!)
-        : this.loadAsync(filepath);
+      if (this.store.has(filepath)) {
+        return Promise.resolve(this.store.get(filepath)!);
+      }
+
+      if (this.asyncStore.has(filepath)) {
+        return this.asyncStore.get(filepath)!;
+      }
+
+      this.asyncStore.set(
+        filepath,
+        this.loadAsync(filepath).finally(() => this.asyncStore.delete(filepath)),
+      );
+      return this.asyncStore.get(filepath)!;
     }
 
     return this.store.get(filepath) || this.load(filepath);

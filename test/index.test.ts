@@ -5,6 +5,7 @@ import File from 'vinyl';
 
 import { create, Store } from '../src/index';
 import { Duplex } from 'stream';
+import { setTimeout } from 'timers/promises';
 
 const fixtureA = 'fixtures/file-a.txt';
 const fixtureB = 'fixtures/file-b.txt';
@@ -34,6 +35,16 @@ describe('mem-fs', () => {
     expect(customLoader.get('foo.txt').contents.toString()).toMatch('a content');
   });
 
+  it('forwards errors from loadFile', () => {
+    const error = new Error('Sync error');
+    const customLoader = new Store<{ path: string; contents: Buffer }>({
+      loadFile() {
+        throw error;
+      },
+    });
+    expect(() => customLoader.get('foo.txt')).toThrow(error);
+  });
+
   it('accepts loadFileAsyncOption', async () => {
     const customLoader = new Store<{ path: string; contents: Buffer }>({
       loadFileAsync: (filepath) =>
@@ -42,6 +53,58 @@ describe('mem-fs', () => {
           contents: Buffer.from('a content'),
         }),
     });
+    expect(
+      (await customLoader.get('foo.txt', { async: true })).contents.toString(),
+    ).toMatch('a content');
+  });
+
+  it('forwards errors from loadFileAsync', async () => {
+    const error = new Error('Async error');
+    const customLoader = new Store<{ path: string; contents: Buffer }>({
+      loadFileAsync: () => Promise.reject(error),
+    });
+    expect(customLoader.get('foo.txt', { async: true })).rejects.toThrow(error);
+  });
+
+  it('consecutive async calls should not call loadFileAsync multiple times', async () => {
+    let loadFileCalled = false;
+    const customLoader = new Store<{ path: string; contents: Buffer }>({
+      async loadFileAsync(filepath) {
+        if (!loadFileCalled) {
+          loadFileCalled = true;
+          await setTimeout(100);
+          return {
+            path: resolve(filepath),
+            contents: Buffer.from('a content'),
+          };
+        }
+
+        throw new Error('Should not be called again');
+      },
+    });
+    const readFile = () =>
+      customLoader
+        .get('foo.txt', { async: true })
+        .then((file) => file.contents.toString());
+    await expect(Promise.all([readFile(), readFile()])).resolves.toMatchObject([
+      'a content',
+      'a content',
+    ]);
+  });
+
+  it('async call should load from memory if file is already loaded', async () => {
+    const customLoader = new Store<{ path: string; contents: Buffer }>({
+      loadFile(filepath) {
+        return {
+          path: resolve(filepath),
+          contents: Buffer.from('a content'),
+        };
+      },
+      async loadFileAsync() {
+        throw new Error('Should not be called');
+      },
+    });
+    customLoader.get('foo.txt');
     expect(
       (await customLoader.get('foo.txt', { async: true })).contents.toString(),
     ).toMatch('a content');
