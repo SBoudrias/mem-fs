@@ -24,7 +24,7 @@ describe('loadFile', () => {
     rmSync(dir, { recursive: true, force: true });
   });
 
-  it('should throw on ENOENT error (async)', async () => {
+  it('should throw on non-ENOENT error (async)', async () => {
     const error = new Error('File not found');
     vi.spyOn(fs.promises, 'stat').mockRejectedValueOnce(error);
     await expect(loadFileAsync('non-existent-file')).rejects.toThrow(error);
