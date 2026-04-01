@@ -29,7 +29,7 @@
     "eslint-config-xo": "^0.50.0",
     "prettier": "^3.8.1",
     "typescript": "6.0.2",
-    "typescript-eslint": "^8.56.1",
+    "typescript-eslint": "^8.58.0",
     "vitest": "^4.0.18"
   },
   "engines": {
