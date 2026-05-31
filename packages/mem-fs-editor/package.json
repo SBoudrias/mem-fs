@@ -1,0 +1,81 @@
+{
+  "name": "mem-fs-editor",
+  "version": "12.0.4",
+  "description": "File edition helpers working on top of mem-fs",
+  "license": "MIT",
+  "author": "Simon Boudrias <admin@simonboudrias.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SBoudrias/mem-fs.git"
+  },
+  "files": [
+    "dist/"
+  ],
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./state": "./src/state.ts",
+    "./transform": "./src/transform.ts",
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./state": {
+        "types": "./dist/state.d.ts",
+        "default": "./dist/state.js"
+      },
+      "./transform": {
+        "types": "./dist/transform.d.ts",
+        "default": "./dist/transform.js"
+      },
+      "./package.json": "./package.json"
+    },
+    "access": "public"
+  },
+  "scripts": {
+    "tsc": "tsc"
+  },
+  "dependencies": {
+    "binaryextensions": "^6.11.0",
+    "commondir": "^1.0.0",
+    "debug": "^4.4.3",
+    "deep-extend": "^0.6.0",
+    "ejs": "^5.0.1",
+    "isbinaryfile": "5.0.7",
+    "minimatch": "^9.0.5",
+    "multimatch": "^8.0.0",
+    "normalize-path": "^3.0.0",
+    "textextensions": "^6.11.0",
+    "tinyglobby": "^0.2.15",
+    "vinyl": "^3.0.1"
+  },
+  "devDependencies": {
+    "@types/commondir": "^1.0.2",
+    "@types/debug": "^4.1.12",
+    "@types/deep-extend": "^0.6.2",
+    "@types/ejs": "^3.1.5",
+    "@types/escape-regexp": "^0.0.3",
+    "@types/normalize-path": "^3.0.2",
+    "@types/picomatch": "^4.0.2",
+    "escape-regexp": "0.0.1",
+    "mem-fs": "workspace:^"
+  },
+  "peerDependencies": {
+    "@types/node": ">=20",
+    "mem-fs": "^4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@types/node": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
