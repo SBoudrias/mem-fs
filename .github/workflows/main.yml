@@ -1,0 +1,42 @@
+name: Node.js CI
+on:
+  push:
+    branches: ['main']
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  Linting:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - run: corepack enable
+      - uses: actions/setup-node@v6
+        with:
+          node-version: latest
+          cache: yarn
+      - run: yarn install --immutable
+      - run: yarn package lint --check
+      - run: yarn oxfmt --check
+      - run: yarn tsc
+      - run: yarn eslint .
+
+  Unit-Tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version:
+          - 20
+          - 22
+          - 24
+          - 26
+
+    steps:
+      - uses: actions/checkout@v6
+      - run: corepack enable
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: yarn
+      - run: yarn install --immutable
+      - run: yarn vitest run --coverage
