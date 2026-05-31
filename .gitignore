@@ -1,7 +1,12 @@
-node_modules/
-dist/
-.yarn
-.project
-*.tsbuildinfo
+node_modules
+dist
 coverage
-.claude/
+.idea
+.yarn
+.turbo
+.DS_Store
+
+# AI tools
+.claude/settings.local.json
+.cursor/mcp.json
+PLAN.md

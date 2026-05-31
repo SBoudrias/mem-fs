@@ -3,7 +3,7 @@ import assert from 'assert';
 import path, { resolve } from 'path';
 import File from 'vinyl';
 
-import { create, Store } from '../src/index';
+import { create, Store } from '../src/index.ts';
 import { Duplex } from 'stream';
 
 const fixtureA = 'fixtures/file-a.txt';
@@ -157,7 +157,7 @@ describe('mem-fs', () => {
         const stream = store.stream();
 
         stream.on('data', (file) => {
-          assert.equal(path.resolve(files[index]), file.path);
+          assert.equal(path.resolve(files[index]!), file.path);
           index++;
         });
 
@@ -176,7 +176,7 @@ describe('mem-fs', () => {
         });
 
         stream.on('data', (file) => {
-          assert.equal(path.resolve(files[index]), file.path);
+          assert.equal(path.resolve(files[index]!), file.path);
           index++;
         });
 
@@ -218,7 +218,7 @@ describe('mem-fs', () => {
     it('creates a new store with filtered files', async () => {
       await store.pipeline(
         { filter: (file) => file.path.includes(fixtureB) },
-        Duplex.from(async (generator: AsyncGenerator<File>) => {
+        Duplex.from(async (generator: AsyncIterable<File>) => {
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           for await (const _file of generator) {
             // Remove all files
@@ -236,7 +236,7 @@ describe('mem-fs', () => {
 
       await store.pipeline(
         { refresh: false },
-        Duplex.from(async (generator: AsyncGenerator<File>) => {
+        Duplex.from(async (generator: AsyncIterable<File>) => {
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           for await (const _file of generator) {
             // Remove all files
@@ -252,7 +252,7 @@ describe('mem-fs', () => {
 
     it('options should be optional', async () => {
       await store.pipeline(
-        Duplex.from(async (generator: AsyncGenerator<File>) => {
+        Duplex.from(async (generator: AsyncIterable<File>) => {
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           for await (const _file of generator) {
             // Remove all files
@@ -272,7 +272,7 @@ describe('mem-fs', () => {
       fileB.path += '.renamed';
 
       await store.pipeline(
-        Duplex.from(async function* (generator: AsyncGenerator<File>) {
+        Duplex.from(async function* (generator: AsyncIterable<File>) {
           for await (const file of generator) {
             if (file.path.endsWith('.renamed')) {
               yield file;

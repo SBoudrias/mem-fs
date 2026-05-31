@@ -1,0 +1,54 @@
+{
+  "name": "mem-fs",
+  "version": "4.1.4",
+  "description": "Simple in-memory vinyl file store",
+  "license": "MIT",
+  "author": "Simon Boudrias <admin@simonboudrias.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SBoudrias/mem-fs.git"
+  },
+  "files": [
+    "dist/"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./package.json": "./package.json"
+    },
+    "access": "public"
+  },
+  "scripts": {
+    "tsc": "tsc"
+  },
+  "dependencies": {
+    "vinyl": "^3.0.1",
+    "vinyl-file": "^5.0.0"
+  },
+  "peerDependencies": {
+    "@types/node": ">=18",
+    "@types/vinyl": "^2.0.12"
+  },
+  "peerDependenciesMeta": {
+    "@types/node": {
+      "optional": true
+    },
+    "@types/vinyl": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

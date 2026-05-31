@@ -2,10 +2,12 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
-    threads: false,
+    pool: 'forks',
     coverage: {
-      '100': true,
       provider: 'v8',
+      thresholds: {
+        '100': true,
+      },
     },
   },
 });
