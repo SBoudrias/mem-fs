@@ -1,0 +1,16 @@
+{
+  "name": "@repo/tsconfig",
+  "version": "0.0.0",
+  "private": true,
+  "sideEffects": false,
+  "exports": {
+    ".": "./tsconfig.json",
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "@sindresorhus/tsconfig": "^8.1.0"
+  },
+  "engines": {
+    "node": ">=23.5.0 || ^22.13.0 || ^20.17.0"
+  }
+}
