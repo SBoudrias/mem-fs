@@ -2,20 +2,35 @@
   "name": "mem-fs",
   "version": "4.1.4",
   "description": "Simple in-memory vinyl file store",
-  "type": "module",
-  "scripts": {
-    "test": "vitest run --coverage",
-    "prepare": "tsc",
-    "pretest": "eslint . && prettier --check --ignore-unknown --no-error-on-unmatched-pattern ."
-  },
-  "repository": "SBoudrias/mem-fs",
-  "author": "Simon Boudrias",
   "license": "MIT",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "author": "Simon Boudrias",
+  "repository": "SBoudrias/mem-fs",
   "files": [
     "dist/"
   ],
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./package.json": "./package.json"
+    },
+    "access": "public"
+  },
+  "scripts": {
+    "prepare": "git config --local include.path ../.gitconfig || true",
+    "prepublishOnly": "yarn tsc",
+    "pretest": "package lint --check && eslint . && oxfmt --check",
+    "test": "vitest run --coverage"
+  },
   "dependencies": {
     "@types/node": ">=18",
     "@types/vinyl": "^2.0.12",
@@ -23,16 +38,23 @@
     "vinyl-file": "^5.0.0"
   },
   "devDependencies": {
+    "@sboudrias/package": "^1.0.1",
     "@vitest/coverage-v8": "^4.0.18",
     "eslint": "^10.0.2",
     "eslint-config-prettier": "^10.1.8",
     "eslint-config-xo": "^0.50.0",
-    "prettier": "^3.8.1",
+    "nano-staged": "^1.0.2",
+    "oxfmt": "^0.52.0",
     "typescript": "6.0.2",
     "typescript-eslint": "^8.58.0",
     "vitest": "^4.0.18"
   },
+  "nano-staged": {
+    "*": "yarn oxfmt --no-error-on-unmatched-pattern",
+    "*.m?[jt]sx?": "yarn eslint --fix"
+  },
   "engines": {
     "node": ">=18.0.0"
-  }
+  },
+  "packageManager": "yarn@4.15.0+sha512.07ec708ac11e2eaa4ea2b04cfbb272812f7e74a753f1595eaef4486c663a98306a30cca3e6fc40f7a0b168dcfb3a2490b6a5e0501e20fb69cc36f563dd161c53"
 }
