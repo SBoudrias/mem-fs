@@ -1,4 +1,4 @@
-import type { MemFsEditor } from '../index.js';
+import type { MemFsEditor } from '../index.ts';
 
 function read(this: MemFsEditor, filepath: string, options?: never): string;
 function read<const DefaultType extends string | null>(
@@ -6,7 +6,11 @@ function read<const DefaultType extends string | null>(
   filepath: string,
   options: { raw?: false; defaults: DefaultType },
 ): string | DefaultType;
-function read(this: MemFsEditor, filepath: string, options: { raw: true; defaults?: never }): Buffer;
+function read(
+  this: MemFsEditor,
+  filepath: string,
+  options: { raw: true; defaults?: never },
+): Buffer;
 function read<const DefaultType extends Buffer | null>(
   this: MemFsEditor,
   filepath: string,

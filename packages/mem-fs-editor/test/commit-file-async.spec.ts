@@ -3,8 +3,8 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { create as createMemFs } from 'mem-fs';
-import { type MemFsEditor, type MemFsEditorFile, create } from '../src/index.js';
-import commitFileAsync from '../src/actions/commit-file-async.js';
+import { type MemFsEditor, type MemFsEditorFile, create } from '../src/index.ts';
+import commitFileAsync from '../src/actions/commit-file-async.ts';
 
 // Permission mode are handled differently by windows.
 // More information can be found at Node source https://github.com/nodejs/node/blob/8cf33850bea691d8c53b2d4175c959c8549aa76c/deps/uv/src/win/fs.c#L1743-L1761
@@ -50,7 +50,9 @@ describe('#commitFileAsync()', () => {
   it('throws if file contents is null', async () => {
     const file = memFs.store.get(filename);
     file.contents = null;
-    await expect(commitFileAsync(memFs.store.get(filename))).rejects.toThrow('cannot write an empty file');
+    await expect(commitFileAsync(memFs.store.get(filename))).rejects.toThrow(
+      'cannot write an empty file',
+    );
   });
 
   it('writes non existing file to disk', async () => {

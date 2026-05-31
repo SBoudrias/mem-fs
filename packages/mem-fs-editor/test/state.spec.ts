@@ -1,5 +1,5 @@
 import { describe, beforeEach, it, expect } from 'vitest';
-import { getFixture } from './fixtures.js';
+import { getFixture } from './fixtures.ts';
 import {
   clearFileState,
   hasClearedState,
@@ -14,7 +14,7 @@ import {
   setCommittedFile,
   setDeletedFileState,
   setModifiedFileState,
-} from '../src/state.js';
+} from '../src/state.ts';
 
 describe('state', () => {
   let file;

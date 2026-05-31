@@ -1,8 +1,8 @@
 import { describe, beforeEach, it, expect } from 'vitest';
 import os from 'os';
-import { type MemFsEditor, MemFsEditorFile, create } from '../src/index.js';
+import { type MemFsEditor, MemFsEditorFile, create } from '../src/index.ts';
 import { create as createMemFs } from 'mem-fs';
-import { getFixture } from './fixtures.js';
+import { getFixture } from './fixtures.ts';
 
 describe('#appendTpl()', () => {
   let memFs: MemFsEditor;
@@ -33,7 +33,12 @@ describe('#appendTpl()', () => {
     const originalContent = memFs.read(filepath);
     const contentPath = getFixture('file-tpl-custom-delimiter.txt');
     const contents = memFs.read(contentPath);
-    memFs.appendTpl(filepath, contents, { name: 'bar' }, { transformOptions: { delimiter: '?' } });
+    memFs.appendTpl(
+      filepath,
+      contents,
+      { name: 'bar' },
+      { transformOptions: { delimiter: '?' } },
+    );
     expect(memFs.read(filepath)).toBe(originalContent + 'bar' + os.EOL);
   });
 

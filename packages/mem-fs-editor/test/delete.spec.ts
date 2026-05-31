@@ -1,8 +1,8 @@
 import { describe, beforeEach, it, expect } from 'vitest';
 import path from 'path';
-import { type MemFsEditor, MemFsEditorFile, create } from '../src/index.js';
+import { type MemFsEditor, MemFsEditorFile, create } from '../src/index.ts';
 import { create as createMemFs } from 'mem-fs';
-import { getFixture } from './fixtures.js';
+import { getFixture } from './fixtures.ts';
 
 describe('#delete()', () => {
   let memFs: MemFsEditor;
@@ -21,6 +21,15 @@ describe('#delete()', () => {
     const file = memFs.store.get(filepath);
     expect(file.contents).toBe(null);
     expect(file.state).toBe('deleted');
+  });
+
+  it('deletes multiple existing files', () => {
+    const fileA = getFixture('file-a.txt');
+    const fileTpl = getFixture('file-tpl.txt');
+    memFs.delete([fileA, fileTpl]);
+
+    expect(memFs.store.get(fileA).state).toBe('deleted');
+    expect(memFs.store.get(fileTpl).state).toBe('deleted');
   });
 
   it('deletes a directory with existing files', () => {

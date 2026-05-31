@@ -1,8 +1,8 @@
 import { isFileTransform, type FileTransform, type PipelineOptions } from 'mem-fs';
-import type { MemFsEditor, MemFsEditorFile } from '../index.js';
+import type { MemFsEditor, MemFsEditorFile } from '../index.ts';
 
-import { createCommitTransform } from '../transform.js';
-import { isFilePending } from '../state.js';
+import { createCommitTransform } from '../transform.ts';
+import { isFilePending } from '../state.ts';
 
 async function commit<EditorFile extends MemFsEditorFile>(
   this: MemFsEditor<EditorFile>,
@@ -14,7 +14,11 @@ async function commit<EditorFile extends MemFsEditorFile>(
     options = undefined;
   }
 
-  await this.store.pipeline({ filter: isFilePending, ...options }, ...transforms, createCommitTransform());
+  await this.store.pipeline(
+    { filter: isFilePending, ...options },
+    ...transforms,
+    createCommitTransform(),
+  );
 }
 
 export default commit;

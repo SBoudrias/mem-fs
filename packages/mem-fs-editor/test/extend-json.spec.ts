@@ -1,7 +1,7 @@
 import { describe, beforeEach, it, expect, vi } from 'vitest';
-import { type MemFsEditor, MemFsEditorFile, create } from '../src/index.js';
+import { type MemFsEditor, MemFsEditorFile, create } from '../src/index.ts';
 import { create as createMemFs } from 'mem-fs';
-import { getFixture } from './fixtures.js';
+import { getFixture } from './fixtures.ts';
 
 describe('#extendJSON()', () => {
   let memFs: MemFsEditor;
@@ -19,7 +19,10 @@ describe('#extendJSON()', () => {
 
     memFs.extendJSON(filepath, contents);
     expect(memFs.write).toHaveBeenCalledTimes(1);
-    expect(memFs.write).toHaveBeenCalledWith(filepath, JSON.stringify({ a: 'a', b: 2 }, null, 2) + '\n');
+    expect(memFs.write).toHaveBeenCalledWith(
+      filepath,
+      JSON.stringify({ a: 'a', b: 2 }, null, 2) + '\n',
+    );
   });
 
   it('writes to unexisting JSON file', () => {
@@ -28,7 +31,10 @@ describe('#extendJSON()', () => {
     vi.spyOn(memFs, 'write');
     memFs.extendJSON(filepath, contents);
     expect(memFs.write).toHaveBeenCalledTimes(1);
-    expect(memFs.write).toHaveBeenCalledWith(filepath, JSON.stringify({ foo: 'bar' }, null, 2) + '\n');
+    expect(memFs.write).toHaveBeenCalledWith(
+      filepath,
+      JSON.stringify({ foo: 'bar' }, null, 2) + '\n',
+    );
   });
 
   it('stringify with optional arguments (for JSON.stringify)', () => {
@@ -37,6 +43,9 @@ describe('#extendJSON()', () => {
     vi.spyOn(memFs, 'write');
     memFs.extendJSON(filepath, contents, ['\n'], 4);
     expect(memFs.write).toHaveBeenCalledTimes(1);
-    expect(memFs.write).toHaveBeenCalledWith(filepath, JSON.stringify(contents, ['\n'], 4) + '\n');
+    expect(memFs.write).toHaveBeenCalledWith(
+      filepath,
+      JSON.stringify(contents, ['\n'], 4) + '\n',
+    );
   });
 });

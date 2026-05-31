@@ -1,7 +1,7 @@
 import { describe, beforeEach, it, expect, vi } from 'vitest';
-import { type MemFsEditor, MemFsEditorFile, create } from '../src/index.js';
+import { type MemFsEditor, MemFsEditorFile, create } from '../src/index.ts';
 import { create as createMemFs } from 'mem-fs';
-import { getFixture } from './fixtures.js';
+import { getFixture } from './fixtures.ts';
 
 describe('#writeJSON()', () => {
   let memFs: MemFsEditor;
@@ -16,7 +16,10 @@ describe('#writeJSON()', () => {
     vi.spyOn(memFs, 'write');
     memFs.writeJSON(filepath, contents, null, 2);
     expect(memFs.write).toHaveBeenCalledTimes(1);
-    expect(memFs.write).toHaveBeenCalledWith(filepath, JSON.stringify(contents, null, 2) + '\n');
+    expect(memFs.write).toHaveBeenCalledWith(
+      filepath,
+      JSON.stringify(contents, null, 2) + '\n',
+    );
   });
 
   it('defaults indentation to 2 if stringify argument is not provided', () => {
@@ -25,7 +28,32 @@ describe('#writeJSON()', () => {
     vi.spyOn(memFs, 'write');
     memFs.writeJSON(filepath, contents);
     expect(memFs.write).toHaveBeenCalledTimes(1);
-    expect(memFs.write).toHaveBeenCalledWith(filepath, JSON.stringify(contents, null, 2) + '\n');
+    expect(memFs.write).toHaveBeenCalledWith(
+      filepath,
+      JSON.stringify(contents, null, 2) + '\n',
+    );
+  });
+
+  it('stringifies with a replacer function', () => {
+    const filepath = getFixture('does-not-exist.txt');
+    const contents = { foo: 'bar', secret: true };
+    vi.spyOn(memFs, 'write');
+
+    memFs.writeJSON(
+      filepath,
+      contents,
+      (key, value) => (key === 'secret' ? undefined : value),
+      2,
+    );
+
+    expect(memFs.write).toHaveBeenCalledWith(
+      filepath,
+      JSON.stringify(
+        contents,
+        (key, value) => (key === 'secret' ? undefined : value),
+        2,
+      ) + '\n',
+    );
   });
 
   it('write json object to a new file', () => {
@@ -48,6 +76,9 @@ describe('#writeJSON()', () => {
     vi.spyOn(memFs, 'write');
     memFs.writeJSON(filepath, contents);
     expect(memFs.write).toHaveBeenCalledTimes(1);
-    expect(memFs.write).toHaveBeenCalledWith(filepath, JSON.stringify(contents, null, 2) + '\n');
+    expect(memFs.write).toHaveBeenCalledWith(
+      filepath,
+      JSON.stringify(contents, null, 2) + '\n',
+    );
   });
 });

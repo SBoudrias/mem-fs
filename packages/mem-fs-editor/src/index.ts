@@ -3,22 +3,22 @@ import type Vinyl from 'vinyl';
 
 export type { PipelineOptions, FileTransform } from 'mem-fs';
 
-import read from './actions/read.js';
-import readJSON from './actions/read-json.js';
-import exists from './actions/exists.js';
-import write from './actions/write.js';
-import writeJSON from './actions/write-json.js';
-import extendJSON from './actions/extend-json.js';
-import append from './actions/append.js';
-import appendTpl from './actions/append-tpl.js';
-import deleteAction from './actions/delete.js';
-import { copy } from './actions/copy.js';
-import { copyTpl } from './actions/copy-tpl.js';
-import { copyAsync } from './actions/copy-async.js';
-import copyTplAsync from './actions/copy-tpl-async.js';
-import move from './actions/move.js';
-import commit from './actions/commit.js';
-import dump from './actions/dump.js';
+import read from './actions/read.ts';
+import readJSON from './actions/read-json.ts';
+import exists from './actions/exists.ts';
+import write from './actions/write.ts';
+import writeJSON from './actions/write-json.ts';
+import extendJSON from './actions/extend-json.ts';
+import append from './actions/append.ts';
+import appendTpl from './actions/append-tpl.ts';
+import deleteAction from './actions/delete.ts';
+import { copy } from './actions/copy.ts';
+import { copyTpl } from './actions/copy-tpl.ts';
+import { copyAsync } from './actions/copy-async.ts';
+import copyTplAsync from './actions/copy-tpl-async.ts';
+import move from './actions/move.ts';
+import commit from './actions/commit.ts';
+import dump from './actions/dump.ts';
 
 export interface MemFsEditorFile {
   path: string;
@@ -32,7 +32,8 @@ export interface MemFsEditorFile {
 }
 
 // We don't support StreamFile and stat is not guaranteed to be a fs.Stat instance
-export interface VinylMemFsEditorFile extends Omit<Vinyl, 'contents' | 'stat'>, MemFsEditorFile {}
+export interface VinylMemFsEditorFile
+  extends Omit<Vinyl, 'contents' | 'stat'>, MemFsEditorFile {}
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 export class MemFsEditor<EditorFile extends MemFsEditorFile = VinylMemFsEditorFile> {

@@ -1,8 +1,8 @@
 import { describe, beforeEach, it, expect, vi } from 'vitest';
-import { type MemFsEditor, MemFsEditorFile, create } from '../src/index.js';
+import { type MemFsEditor, MemFsEditorFile, create } from '../src/index.ts';
 import { create as createMemFs } from 'mem-fs';
 import escape from 'escape-regexp';
-import { getFixture } from './fixtures.js';
+import { getFixture } from './fixtures.ts';
 
 describe('#readJSON()', () => {
   let memFs: MemFsEditor;
@@ -44,7 +44,7 @@ describe('#readJSON()', () => {
     const filePath = getFixture('file-tpl.txt');
     expect(() => {
       // @ts-expect-error - Expecting it to throw
-      memFs.readJSON(new RegExp(escape(filePath)));
+      memFs.readJSON(new RegExp(escape(filePath), 'v'));
     }).toThrow();
   });
 });

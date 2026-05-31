@@ -1,6 +1,11 @@
-import type { MemFsEditor } from '../index.js';
+import type { MemFsEditor } from '../index.ts';
 
-export default function (this: MemFsEditor, from: string, to: string, options?: Parameters<MemFsEditor['copy']>[2]) {
+export default function (
+  this: MemFsEditor,
+  from: string,
+  to: string,
+  options?: Parameters<MemFsEditor['copy']>[2],
+) {
   this.copy(from, to, options);
   this.delete(from, options);
 }

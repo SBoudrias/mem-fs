@@ -1,25 +1,28 @@
 import ejs from 'ejs';
-import type { MemFsEditor } from '../index.js';
-import { isBinary } from '../util.js';
+import type { MemFsEditor } from '../index.ts';
+import { isBinary } from '../util.ts';
 
-export function copyTpl(
-  this: MemFsEditor,
+type CopyTplOptions = Omit<
+  NonNullable<Parameters<MemFsEditor['copy']>[2]>,
+  'fileTransform' | 'transformData'
+> & {
+  transformOptions?: ejs.Options;
+};
+
+type CopyTplParameters = [
   from: string | string[],
   to: string,
   data?: ejs.Data,
-  options?: Omit<NonNullable<Parameters<MemFsEditor['copy']>[2]>, 'fileTransform' | 'transformData'> & {
-    transformOptions?: ejs.Options;
-  },
-): void;
+  options?: CopyTplOptions,
+  compatOptions?: Omit<
+    NonNullable<Parameters<MemFsEditor['copy']>[2]>,
+    'fileTransform' | 'transformData'
+  >,
+];
+
 export function copyTpl(
   this: MemFsEditor,
-  from: string | string[],
-  to: string,
-  data: ejs.Data = {},
-  options?: Omit<NonNullable<Parameters<MemFsEditor['copy']>[2]>, 'fileTransform' | 'transformData'> & {
-    transformOptions?: ejs.Options;
-  },
-  compatOptions?: Omit<NonNullable<Parameters<MemFsEditor['copy']>[2]>, 'fileTransform' | 'transformData'>,
+  ...[from, to, data = {}, options, compatOptions]: CopyTplParameters
 ): void {
   /* v8 ignore next -- @preserve */
   if (compatOptions) {
@@ -38,7 +41,7 @@ export function copyTpl(
         throw new Error('Async EJS rendering is not supported');
       }
 
-      let processedPath = ejs.render(destinationPath, data, {
+      const renderedPath = ejs.render(destinationPath, data, {
         ...options,
         cache: false, // Cache uses filename as key, which is not provided in this case.
         async: false,
@@ -51,10 +54,10 @@ export function copyTpl(
             ...options,
             async: false,
           });
-      if (!to.endsWith('.ejs')) {
-        // If the initial destination path ends with .ejs, the output is expected to be .ejs file, so we keep the extension. Remove .ejs extension for other cases.
-        processedPath = processedPath.replace(/.ejs$/, '');
-      }
+      // If the destination path ends with .ejs, the output is expected to be an .ejs file.
+      const processedPath = to.endsWith('.ejs')
+        ? renderedPath
+        : renderedPath.replace(/.ejs$/v, '');
 
       return { path: processedPath, contents: processedContent };
     },

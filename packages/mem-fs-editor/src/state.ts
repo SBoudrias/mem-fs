@@ -1,7 +1,7 @@
 import fs from 'fs';
-import { MemFsEditorFile } from './index.js';
+import { MemFsEditorFile } from './index.ts';
 
-const states: Record<string, MemFsEditorFile['state']> = {
+const states: Record<'MODIFIED' | 'DELETED', MemFsEditorFile['state']> = {
   MODIFIED: 'modified',
   DELETED: 'deleted',
 };
@@ -18,13 +18,15 @@ export const isFileNew = (file: MemFsEditorFile) => {
   return file.isNew;
 };
 
-export const isFileStateModified = (file: MemFsEditorFile) => file.state === states.MODIFIED;
+export const isFileStateModified = (file: MemFsEditorFile) =>
+  file.state === states.MODIFIED;
 
 export const setModifiedFileState = (file: MemFsEditorFile) => {
   setFileState(file, states.MODIFIED);
 };
 
-export const isFileStateDeleted = (file: MemFsEditorFile) => file.state === states.DELETED;
+export const isFileStateDeleted = (file: MemFsEditorFile) =>
+  file.state === states.DELETED;
 
 export const setDeletedFileState = (file: MemFsEditorFile) => {
   setFileState(file, states.DELETED);

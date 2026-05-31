@@ -1,20 +1,20 @@
 import { describe, beforeEach, it, expect, vi } from 'vitest';
 import os from 'os';
 import path, { resolve } from 'path';
-import { type MemFsEditor, MemFsEditorFile, create } from '../src/index.js';
+import { type MemFsEditor, MemFsEditorFile, create } from '../src/index.ts';
 import { create as createMemFs } from 'mem-fs';
-import { getFixture } from './fixtures.js';
+import { getFixture } from './fixtures.ts';
 import multimatch from 'multimatch';
 import { glob, globSync } from 'tinyglobby';
 import normalizePath from 'normalize-path';
 
 vi.mock('multimatch', async (importOriginal) => {
-  const actual = (await importOriginal()) as any;
+  const actual = await importOriginal<typeof import('multimatch')>();
   return { ...actual, default: vi.fn().mockImplementation(actual.default) };
 });
 
 vi.mock('tinyglobby', async (importOriginal) => {
-  const actual = (await importOriginal()) as any;
+  const actual = await importOriginal<typeof import('tinyglobby')>();
   return {
     ...actual,
     glob: vi.fn().mockImplementation(actual.glob),
@@ -101,9 +101,13 @@ for (const method of ['copyTpl', 'copyTplAsync'] as const) {
     it('should pass globOptions to glob', async () => {
       const globOptions = { debug: false } as const;
       const filepath = getFixture('file-tpl-partial.*');
-      await memFs[method]([filepath], '/new/path/', {}, { globOptions, fromBasePath: getFixture() });
+      await memFs[method](
+        [filepath],
+        '/new/path/',
+        {},
+        { globOptions, fromBasePath: getFixture() },
+      );
 
-      // eslint-disable-next-line @typescript-eslint/no-deprecated
       expect(method === 'copyTpl' ? globSync : glob).toHaveBeenCalledWith(
         [normalizePath(filepath)],
         expect.objectContaining(globOptions),
@@ -121,16 +125,27 @@ for (const method of ['copyTpl', 'copyTplAsync'] as const) {
           memFs[method](from, dest, data, options);
         }).toThrowError(expectedError);
       } else {
-        await expect(memFs[method](from, dest, data, options)).rejects.toThrowError(expectedError);
+        await expect(memFs[method](from, dest, data, options)).rejects.toThrowError(
+          expectedError,
+        );
       }
     });
 
     it('should pass storeMatchOptions to multimatch', async () => {
       const storeMatchOptions = { debug: false } as const;
       const filepath = getFixture('file-tpl-partial.*');
-      await memFs[method]([filepath], '/new/path/', {}, { storeMatchOptions, fromBasePath: getFixture() });
+      await memFs[method](
+        [filepath],
+        '/new/path/',
+        {},
+        { storeMatchOptions, fromBasePath: getFixture() },
+      );
 
-      expect(multimatch).toHaveBeenCalledWith(expect.any(Array), [normalizePath(filepath)], storeMatchOptions);
+      expect(multimatch).toHaveBeenCalledWith(
+        expect.any(Array),
+        [normalizePath(filepath)],
+        storeMatchOptions,
+      );
     });
 
     it('should fail when passing noGlob and storeMatchOptions', async () => {
@@ -144,7 +159,9 @@ for (const method of ['copyTpl', 'copyTplAsync'] as const) {
           memFs[method](from, dest, data, options);
         }).toThrowError(expectedError);
       } else {
-        await expect(memFs[method](from, dest, data, options)).rejects.toThrowError(expectedError);
+        await expect(memFs[method](from, dest, data, options)).rejects.toThrowError(
+          expectedError,
+        );
       }
     });
 
@@ -165,7 +182,12 @@ for (const method of ['copyTpl', 'copyTplAsync'] as const) {
     });
 
     it('allow passing circular function context', async () => {
-      const b = {} as any;
+      type CircularContext = {
+        name?: string;
+        a?: CircularContext;
+        b?: CircularContext;
+      };
+      const b: CircularContext = {};
       const a = { name: 'new content', b };
       b.a = a;
       const filepath = getFixture('file-circular.txt');
@@ -201,7 +223,10 @@ for (const method of ['copyTpl', 'copyTplAsync'] as const) {
       const filepath = getFixture('file-tpl.txt');
       const newPath = '/new/path/file.txt';
       await memFs[method](filepath, newPath, { name: 'new content' });
-      expect(memFs.store.get(newPath).history).toMatchObject([resolve(filepath), resolve(newPath)]);
+      expect(memFs.store.get(newPath).history).toMatchObject([
+        resolve(filepath),
+        resolve(newPath),
+      ]);
     });
 
     it('does not remove ejs extension when the destination path ends with .ejs', async () => {

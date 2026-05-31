@@ -9,10 +9,16 @@ import multimatch from 'multimatch';
 import normalize from 'normalize-path';
 import File from 'vinyl';
 
-import type { MemFsEditor } from '../index.js';
+import type { MemFsEditor } from '../index.ts';
 import type { Options as MultimatchOptions } from 'multimatch';
-import { resolveFromPaths, getCommonPath, type ResolvedFrom, globify, resolveGlobOptions } from '../util.js';
-import { writeInternal } from './write.js';
+import {
+  resolveFromPaths,
+  getCommonPath,
+  type ResolvedFrom,
+  globify,
+  resolveGlobOptions,
+} from '../util.ts';
+import { writeInternal } from './write.ts';
 
 const debug = createDebug('mem-fs-editor:copy-async');
 
@@ -22,13 +28,17 @@ async function getOneFile(filepath: string) {
     if ((await fsPromises.stat(resolved)).isFile()) {
       return resolved;
     }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  } catch (error) {}
 
-  return undefined;
+    return undefined;
+  } catch {
+    return undefined;
+  }
 }
 
-type CopySingleAsyncOptions<TransformData = any, TransformOptions = any> = Parameters<MemFsEditor['append']>[2] & {
+type CopySingleAsyncOptions<
+  TransformData = unknown,
+  TransformOptions = unknown,
+> = Parameters<MemFsEditor['append']>[2] & {
   append?: boolean;
 
   /**
@@ -49,15 +59,17 @@ type CopySingleAsyncOptions<TransformData = any, TransformOptions = any> = Param
     contents: Buffer;
     data?: TransformData;
     options?: TransformOptions;
-  }) => { path: string; contents: string | Buffer } | Promise<{ path: string; contents: string | Buffer }>;
+  }) =>
+    | { path: string; contents: string | Buffer }
+    | Promise<{ path: string; contents: string | Buffer }>;
   transformData?: TransformData;
   transformOptions?: TransformOptions;
 };
 
-type CopyAsyncOptions<TransformData = any, TransformOptions = any> = CopySingleAsyncOptions<
-  TransformData,
-  TransformOptions
-> & {
+type CopyAsyncOptions<
+  TransformData = unknown,
+  TransformOptions = unknown,
+> = CopySingleAsyncOptions<TransformData, TransformOptions> & {
   noGlob?: boolean;
   /**
    * Options for disk globbing.
@@ -65,7 +77,13 @@ type CopyAsyncOptions<TransformData = any, TransformOptions = any> = CopySingleA
    */
   globOptions?: Pick<
     GlobOptions,
-    'caseSensitiveMatch' | 'cwd' | 'debug' | 'deep' | 'dot' | 'expandDirectories' | 'followSymbolicLinks'
+    | 'caseSensitiveMatch'
+    | 'cwd'
+    | 'debug'
+    | 'deep'
+    | 'dot'
+    | 'expandDirectories'
+    | 'followSymbolicLinks'
   >;
   /**
    * Options for store files matching.
@@ -75,7 +93,10 @@ type CopyAsyncOptions<TransformData = any, TransformOptions = any> = CopySingleA
   fromBasePath?: string;
 };
 
-export async function copyAsync<const TransformData = any, const TransformOptions = any>(
+export async function copyAsync<
+  const TransformData = unknown,
+  const TransformOptions = unknown,
+>(
   this: MemFsEditor,
   from: string | string[],
   to: string,
@@ -86,7 +107,10 @@ export async function copyAsync<const TransformData = any, const TransformOption
   const hasGlobOptions = Boolean(options.globOptions);
   const hasMultimatchOptions = Boolean(options.storeMatchOptions);
   assert(!noGlob || !hasGlobOptions, '`noGlob` and `globOptions` are mutually exclusive');
-  assert(!noGlob || !hasMultimatchOptions, '`noGlob` and `storeMatchOptions` are mutually exclusive');
+  assert(
+    !noGlob || !hasMultimatchOptions,
+    '`noGlob` and `storeMatchOptions` are mutually exclusive',
+  );
 
   if (typeof from === 'string') {
     const oneFile = await getOneFile(from);
@@ -97,7 +121,9 @@ export async function copyAsync<const TransformData = any, const TransformOption
 
   const { fromBasePath = getCommonPath(from) } = options;
   const resolvedFromPaths = resolveFromPaths({ from, fromBasePath });
-  const hasDynamicPattern = resolvedFromPaths.some((f) => isDynamicPattern(normalize(f.from)));
+  const hasDynamicPattern = resolvedFromPaths.some((f) =>
+    isDynamicPattern(normalize(f.from)),
+  );
   const { preferFiles } = resolveGlobOptions({
     noGlob,
     hasDynamicPattern,
@@ -120,7 +146,12 @@ export async function copyAsync<const TransformData = any, const TransformOption
   if (globResolved.length > 0) {
     const patterns = globResolved.map((file) => globify(file.from)).flat();
     diskFiles = (
-      await glob(patterns, { cwd: fromBasePath, ...options.globOptions, absolute: true, onlyFiles: true })
+      await glob(patterns, {
+        cwd: fromBasePath,
+        ...options.globOptions,
+        absolute: true,
+        onlyFiles: true,
+      })
     ).map((file) => path.resolve(file));
 
     const normalizedStoreFilePaths = this.store
@@ -133,7 +164,9 @@ export async function copyAsync<const TransformData = any, const TransformOption
 
     multimatch(
       normalizedStoreFilePaths,
-      patterns.map((p) => (path.isAbsolute(p) ? p : path.posix.join(normalize(fromBasePath), p))),
+      patterns.map((p) =>
+        path.isAbsolute(p) ? p : path.posix.join(normalize(fromBasePath), p),
+      ),
       options.storeMatchOptions,
     ).forEach((filePath) => {
       storeFiles.push(path.resolve(filePath));
@@ -155,21 +188,32 @@ export async function copyAsync<const TransformData = any, const TransformOption
       'When copying multiple files, provide a directory as destination',
     );
 
-    generateDestination = (filepath) => path.join(to, path.relative(fromBasePath, filepath));
+    generateDestination = (filepath) =>
+      path.join(to, path.relative(fromBasePath, filepath));
   }
 
   await Promise.all([
-    ...diskFiles.map((file) => copySingleAsync(this, file, generateDestination(file), options)),
-    ...storeFiles.map((file) => copySingleAsync(this, file, generateDestination(file), options)),
+    ...diskFiles.map((file) =>
+      copySingleAsync(this, file, generateDestination(file), options),
+    ),
+    ...storeFiles.map((file) =>
+      copySingleAsync(this, file, generateDestination(file), options),
+    ),
   ]);
 }
 
-const defaultFileTransform: NonNullable<CopyAsyncOptions['fileTransform']> = ({ destinationPath, contents }) => ({
+const defaultFileTransform: NonNullable<CopyAsyncOptions['fileTransform']> = ({
+  destinationPath,
+  contents,
+}) => ({
   path: destinationPath,
   contents,
 });
 
-async function copySingleAsync<const TransformData = any, const TransformOptions = any>(
+async function copySingleAsync<
+  const TransformData = unknown,
+  const TransformOptions = unknown,
+>(
   editor: MemFsEditor,
   from: string,
   to: string,
@@ -182,7 +226,11 @@ async function copySingleAsync<const TransformData = any, const TransformOptions
   const file = editor.store.get(from);
   assert(file.contents, `Cannot copy empty file ${from}`);
 
-  const { fileTransform = defaultFileTransform, transformOptions, transformData } = options;
+  const {
+    fileTransform = defaultFileTransform,
+    transformOptions,
+    transformData,
+  } = options;
   const transformPromise = fileTransform({
     destinationPath: path.resolve(to),
     sourcePath: from,
@@ -208,7 +256,7 @@ async function copySingleAsync<const TransformData = any, const TransformOptions
       editor.store,
       new File({
         contents: Buffer.from(contents),
-        stat: file.stat as any,
+        stat: fs.statSync(file.path, { throwIfNoEntry: false }),
         path: to,
         history: [file.path],
       }),

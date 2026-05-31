@@ -4,9 +4,9 @@ import { Duplex } from 'stream';
 import os from 'os';
 import { describe, beforeEach, it, expect, afterEach, vi } from 'vitest';
 import { create as createMemFs } from 'mem-fs';
-import { MemFsEditor, MemFsEditorFile, create } from '../src/index.js';
-import { getFixture } from './fixtures.js';
-import { isFilePending } from '../src/state.js';
+import { MemFsEditor, MemFsEditorFile, create } from '../src/index.ts';
+import { getFixture } from './fixtures.ts';
+import { isFilePending } from '../src/state.ts';
 
 describe('#commit()', () => {
   const fixtureDir = path.join(os.tmpdir(), '/mem-fs-editor-test-fixture');
@@ -42,7 +42,9 @@ describe('#commit()', () => {
     let called = 0;
 
     // eslint-disable-next-line require-yield
-    const filter = Duplex.from(async function* (generator: AsyncIterable<MemFsEditorFile>) {
+    const filter = Duplex.from(async function* (
+      generator: AsyncIterable<MemFsEditorFile>,
+    ) {
       // eslint-disable-next-line no-unreachable-loop, @typescript-eslint/no-unused-vars
       for await (const _file of generator) {
         called++;
@@ -50,7 +52,7 @@ describe('#commit()', () => {
       }
     });
 
-    await expect(memFs.commit(filter)).rejects.toThrow(/error 1/);
+    await expect(memFs.commit(filter)).rejects.toThrow(/error 1/v);
   });
 
   it('call filters and update memory model', async () => {
@@ -100,7 +102,7 @@ describe('#commit()', () => {
 
   it('handle error when write fails', async () => {
     fs.writeFileSync(output, 'foo');
-    await expect(memFs.commit()).rejects.toThrow(/is not a directory/);
+    await expect(memFs.commit()).rejects.toThrow(/is not a directory/v);
   });
 
   it('delete file from disk', async () => {
@@ -141,7 +143,11 @@ describe('#commit()', () => {
     await memFs.commit({ filter: () => true });
 
     expect(writeFile).toHaveBeenCalled();
-    expect(writeFile).not.toBeCalledWith(resolve('to-delete'), expect.anything(), expect.anything());
+    expect(writeFile).not.toBeCalledWith(
+      resolve('to-delete'),
+      expect.anything(),
+      expect.anything(),
+    );
   });
 
   it('does not pass files who are deleted before being commited through the pipeline', async () => {
@@ -192,11 +198,21 @@ describe('#copyTpl() and #commit()', () => {
   beforeEach(() => {
     memFs = create(createMemFs<MemFsEditorFile>());
 
-    const a = { name: 'foo' } as any;
+    type CircularContext = {
+      name?: string;
+      a?: CircularContext;
+      b?: CircularContext;
+    };
+    const a: CircularContext = { name: 'foo' };
     const b = { a };
     a.b = b;
 
-    memFs.copyTpl(getFixture('**'), output, { name: 'bar' }, { transformOptions: { context: { a } } });
+    memFs.copyTpl(
+      getFixture('**'),
+      output,
+      { name: 'bar' },
+      { transformOptions: { context: { a } } },
+    );
   });
 
   afterEach(() => {

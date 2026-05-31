@@ -1,9 +1,9 @@
 import { describe, beforeEach, it, expect } from 'vitest';
 import os from 'os';
 import path from 'path';
-import { type MemFsEditor, MemFsEditorFile, create } from '../src/index.js';
+import { type MemFsEditor, MemFsEditorFile, create } from '../src/index.ts';
 import { create as createMemFs } from 'mem-fs';
-import { getFixture } from './fixtures.js';
+import { getFixture } from './fixtures.ts';
 
 describe('#move()', () => {
   let memFs: MemFsEditor;

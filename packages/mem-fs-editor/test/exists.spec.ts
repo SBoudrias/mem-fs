@@ -1,7 +1,7 @@
 import { describe, beforeEach, it, expect } from 'vitest';
-import { type MemFsEditor, MemFsEditorFile, create } from '../src/index.js';
+import { type MemFsEditor, MemFsEditorFile, create } from '../src/index.ts';
 import { create as createMemFs } from 'mem-fs';
-import { getFixture } from './fixtures.js';
+import { getFixture } from './fixtures.ts';
 
 const fileA = getFixture('file-a.txt');
 const fileDelete = getFixture('deleteAfter');

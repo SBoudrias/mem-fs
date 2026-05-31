@@ -1,6 +1,6 @@
 import { describe, beforeEach, it, expect } from 'vitest';
 import { EOL } from 'os';
-import { MemFsEditor, MemFsEditorFile, create } from '../src/index.js';
+import { MemFsEditor, MemFsEditorFile, create } from '../src/index.ts';
 import { create as createMemFs } from 'mem-fs';
 
 describe('#append()', () => {

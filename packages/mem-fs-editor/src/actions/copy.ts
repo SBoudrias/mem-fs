@@ -7,14 +7,20 @@ import multimatch from 'multimatch';
 import type { Options as MultimatchOptions } from 'multimatch';
 import normalize from 'normalize-path';
 import File from 'vinyl';
-import { writeInternal } from './write.js';
+import { writeInternal } from './write.ts';
 
-import type { MemFsEditor } from '../index.js';
-import { resolveFromPaths, getCommonPath, ResolvedFrom, resolveGlobOptions, globify } from '../util.js';
+import type { MemFsEditor } from '../index.ts';
+import {
+  resolveFromPaths,
+  getCommonPath,
+  ResolvedFrom,
+  resolveGlobOptions,
+  globify,
+} from '../util.ts';
 
 const debug = createDebug('mem-fs-editor:copy');
 
-type CopySingleOptions<TransformData = any, TransformOptions = any> = {
+type CopySingleOptions<TransformData = unknown, TransformOptions = unknown> = {
   append?: boolean;
   /**
    * @experimental This API is experimental and may change without a major version bump.
@@ -39,7 +45,10 @@ type CopySingleOptions<TransformData = any, TransformOptions = any> = {
   transformOptions?: TransformOptions;
 };
 
-type CopyOptions<TransformData = any, TransformOptions = any> = CopySingleOptions<TransformData, TransformOptions> & {
+type CopyOptions<TransformData = unknown, TransformOptions = unknown> = CopySingleOptions<
+  TransformData,
+  TransformOptions
+> & {
   noGlob?: boolean;
   /**
    * Options for disk globbing.
@@ -47,7 +56,13 @@ type CopyOptions<TransformData = any, TransformOptions = any> = CopySingleOption
    */
   globOptions?: Pick<
     GlobOptions,
-    'caseSensitiveMatch' | 'cwd' | 'debug' | 'deep' | 'dot' | 'expandDirectories' | 'followSymbolicLinks'
+    | 'caseSensitiveMatch'
+    | 'cwd'
+    | 'debug'
+    | 'deep'
+    | 'dot'
+    | 'expandDirectories'
+    | 'followSymbolicLinks'
   >;
   /**
    * Options for store files matching.
@@ -57,7 +72,7 @@ type CopyOptions<TransformData = any, TransformOptions = any> = CopySingleOption
   fromBasePath?: string;
 };
 
-export function copy<const TransformData = any, const TransformOptions = any>(
+export function copy<const TransformData = unknown, const TransformOptions = unknown>(
   this: MemFsEditor,
   from: string | string[],
   to: string,
@@ -67,10 +82,15 @@ export function copy<const TransformData = any, const TransformOptions = any>(
   const hasGlobOptions = Boolean(options.globOptions);
   const hasMultimatchOptions = Boolean(options.storeMatchOptions);
   assert(!noGlob || !hasGlobOptions, '`noGlob` and `globOptions` are mutually exclusive');
-  assert(!noGlob || !hasMultimatchOptions, '`noGlob` and `storeMatchOptions` are mutually exclusive');
+  assert(
+    !noGlob || !hasMultimatchOptions,
+    '`noGlob` and `storeMatchOptions` are mutually exclusive',
+  );
 
   const resolvedFromPaths = resolveFromPaths({ from, fromBasePath });
-  const hasDynamicPattern = resolvedFromPaths.some((f) => isDynamicPattern(normalize(f.from)));
+  const hasDynamicPattern = resolvedFromPaths.some((f) =>
+    isDynamicPattern(normalize(f.from)),
+  );
   const { preferFiles } = resolveGlobOptions({
     noGlob,
     hasDynamicPattern,
@@ -108,7 +128,13 @@ export function copy<const TransformData = any, const TransformOptions = any>(
       // The store may have a glob path and when we try to copy it will fail because not real file
       .filter((filePath) => !isDynamicPattern(filePath));
 
-    multimatch(normalizedStoreFilePaths, patterns, options.storeMatchOptions).forEach((filePath) => {
+    multimatch(
+      normalizedStoreFilePaths,
+      patterns.map((p) =>
+        path.isAbsolute(p) ? p : path.posix.join(normalize(fromBasePath), p),
+      ),
+      options.storeMatchOptions,
+    ).forEach((filePath) => {
       globbedFiles.push(path.resolve(filePath));
     });
 
@@ -145,18 +171,27 @@ export function copy<const TransformData = any, const TransformOptions = any>(
   });
 }
 
-const defaultFileTransform: NonNullable<CopySingleOptions['fileTransform']> = ({ destinationPath, contents }) => ({
+const defaultFileTransform: NonNullable<CopySingleOptions['fileTransform']> = ({
+  destinationPath,
+  contents,
+}) => ({
   path: destinationPath,
   contents,
 });
 
-export function copySingle<const TransformData = any, const TransformOptions = any>(
+export function copySingle<
+  const TransformData = unknown,
+  const TransformOptions = unknown,
+>(
   editor: MemFsEditor,
   from: string,
   to: string,
   options: CopySingleOptions<TransformData, TransformOptions> = {},
 ) {
-  assert(editor.exists(from), 'Trying to copy from a source that does not exist: ' + from);
+  assert(
+    editor.exists(from),
+    'Trying to copy from a source that does not exist: ' + from,
+  );
 
   debug('Copying %s to %s with %o', from, to, options);
   const file = editor.store.get(from);
@@ -167,7 +202,11 @@ export function copySingle<const TransformData = any, const TransformOptions = a
     throw new Error(`Cannot copy empty file ${from}`);
   }
 
-  const { fileTransform = defaultFileTransform, transformOptions, transformData } = options;
+  const {
+    fileTransform = defaultFileTransform,
+    transformOptions,
+    transformData,
+  } = options;
   ({ path: to, contents } = fileTransform({
     destinationPath: path.resolve(to),
     sourcePath: from,
@@ -191,7 +230,7 @@ export function copySingle<const TransformData = any, const TransformOptions = a
       editor.store,
       new File({
         contents: Buffer.from(contents),
-        stat: (file.stat as any) ?? fs.statSync(file.path),
+        stat: fs.statSync(file.path, { throwIfNoEntry: false }),
         path: to,
         history: [file.path],
       }),

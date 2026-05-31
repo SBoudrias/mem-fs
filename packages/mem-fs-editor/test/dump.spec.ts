@@ -1,9 +1,9 @@
-import crypto from 'node:crypto';
-import { describe, beforeEach, it, expect } from 'vitest';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { describe, beforeEach, afterEach, it, expect } from 'vitest';
 import os from 'os';
 import path from 'path';
 import { create as createMemFs } from 'mem-fs';
-import { type MemFsEditor, MemFsEditorFile, create } from '../src/index.js';
+import { type MemFsEditor, MemFsEditorFile, create } from '../src/index.ts';
 
 describe('#dump()', () => {
   let testDir: string;
@@ -12,8 +12,7 @@ describe('#dump()', () => {
   beforeEach(async () => {
     const subdir = 'foo';
 
-    const hash = crypto.createHash('md5').digest('hex');
-    testDir = path.join(os.tmpdir(), 'mem-fs-editor-test', hash);
+    testDir = await mkdtemp(path.join(os.tmpdir(), 'mem-fs-editor-test-'));
     memFs = create(createMemFs<MemFsEditorFile>());
 
     memFs.write(path.join(testDir, subdir, 'committed'), 'committed');
@@ -27,10 +26,17 @@ describe('#dump()', () => {
 
     memFs.write(path.join(testDir, subdir, 'committed-changed'), 'committed-changed');
     memFs.write(path.join(testDir, subdir, 'not-committed'), 'not-committed');
-    memFs.write(path.join(testDir, subdir, 'not-committed-delete'), 'not-committed-delete');
+    memFs.write(
+      path.join(testDir, subdir, 'not-committed-delete'),
+      'not-committed-delete',
+    );
 
     memFs.delete(path.join(testDir, subdir, 'committed-delete-changed'));
     memFs.delete(path.join(testDir, subdir, 'not-committed-delete'));
+  });
+
+  afterEach(async () => {
+    await rm(testDir, { recursive: true, force: true });
   });
 
   it('should match snapshot', () => {
@@ -68,7 +74,8 @@ describe('#dump()', () => {
 
   describe('with custom filter', () => {
     it('should match snapshot', () => {
-      expect(memFs.dump(testDir, (file) => file.path.endsWith('not-committed'))).toMatchInlineSnapshot(`
+      expect(memFs.dump(testDir, (file) => file.path.endsWith('not-committed')))
+        .toMatchInlineSnapshot(`
         {
           "foo/not-committed": {
             "contents": "not-committed",

@@ -1,7 +1,17 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { clearFileState, isFileStateModified, isFileStateDeleted, setCommittedFile, isFileNew } from '../state.js';
-import type { MemFsEditorFile } from '../index.js';
+import {
+  clearFileState,
+  isFileStateModified,
+  isFileStateDeleted,
+  setCommittedFile,
+  isFileNew,
+} from '../state.ts';
+import type { MemFsEditorFile } from '../index.ts';
+
+function hasErrorCode(error: unknown): error is { code: string } {
+  return typeof error === 'object' && error !== null && 'code' in error;
+}
 
 async function write(file: MemFsEditorFile) {
   if (!file.contents) {
@@ -14,7 +24,7 @@ async function write(file: MemFsEditorFile) {
       throw new Error(`${dir} is not a directory`);
     }
   } catch (error) {
-    if ((error as any).code === 'ENOENT') {
+    if (hasErrorCode(error) && error.code === 'ENOENT') {
       await fs.mkdir(dir, { recursive: true });
     } else {
       throw error;

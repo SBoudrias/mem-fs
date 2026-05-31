@@ -8,7 +8,7 @@ import textextensions from 'textextensions';
 import binaryextensions from 'binaryextensions';
 
 function notNullOrExclusion(file?: string) {
-  return file != null && file.charAt(0) !== '!';
+  return file !== undefined && file !== null && file.charAt(0) !== '!';
 }
 
 export function getCommonPath(filePath: string | string[]): string {
@@ -34,7 +34,10 @@ export function globify(inputFilePath: string): string | string[];
 export function globify(inputFilePath: string[]): string[];
 export function globify(inputFilePath: string | string[]): string | string[] {
   if (Array.isArray(inputFilePath)) {
-    return inputFilePath.reduce<string[]>((memo, pattern) => memo.concat(globify(pattern)), []);
+    return inputFilePath.reduce<string[]>(
+      (memo, pattern) => memo.concat(globify(pattern)),
+      [],
+    );
   }
 
   const filePath = normalize(inputFilePath);
@@ -62,7 +65,7 @@ export function globify(inputFilePath: string | string[]): string | string[] {
 }
 
 export function isBinary(filePath: string, newFileContents?: Buffer) {
-  const extension = path.extname(filePath).replace(/^\./, '') || path.basename(filePath);
+  const extension = path.extname(filePath).replace(/^\./v, '') || path.basename(filePath);
   if (binaryextensions.includes(extension)) {
     return true;
   }
@@ -72,7 +75,8 @@ export function isBinary(filePath: string, newFileContents?: Buffer) {
   }
 
   return (
-    (fs.existsSync(filePath) && isBinaryFileSync(filePath)) || (newFileContents && isBinaryFileSync(newFileContents))
+    (fs.existsSync(filePath) && isBinaryFileSync(filePath)) ||
+    (newFileContents && isBinaryFileSync(newFileContents))
   );
 }
 
@@ -91,8 +95,12 @@ export function resolveFromPaths({
 }): ResolvedFrom[] {
   return (Array.isArray(from) ? from : [from]).map((filePath) => {
     const filePathIsAbsolute = path.isAbsolute(filePath);
-    const relativeFrom = filePathIsAbsolute ? path.relative(fromBasePath, filePath) : filePath;
-    const resolvedFrom = filePathIsAbsolute ? filePath : path.resolve(fromBasePath, filePath);
+    const relativeFrom = filePathIsAbsolute
+      ? path.relative(fromBasePath, filePath)
+      : filePath;
+    const resolvedFrom = filePathIsAbsolute
+      ? filePath
+      : path.resolve(fromBasePath, filePath);
     return { from: filePath, resolvedFrom, relativeFrom };
   });
 }

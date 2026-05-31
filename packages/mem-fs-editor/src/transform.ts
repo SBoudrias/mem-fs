@@ -1,6 +1,6 @@
 import { Transform } from 'stream';
-import commitFileAsync from './actions/commit-file-async.js';
-import type { MemFsEditorFile } from './index.js';
+import commitFileAsync from './actions/commit-file-async.ts';
+import type { MemFsEditorFile } from './index.ts';
 
 export const createCommitTransform = () =>
   new Transform({

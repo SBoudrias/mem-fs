@@ -3,9 +3,9 @@ import { globSync, type GlobOptions } from 'tinyglobby';
 import multimatch from 'multimatch';
 import normalize from 'normalize-path';
 
-import type { MemFsEditor } from '../index.js';
-import { setDeletedFileState } from '../state.js';
-import { globify } from '../util.js';
+import type { MemFsEditor } from '../index.ts';
+import { setDeletedFileState } from '../state.ts';
+import { globify } from '../util.ts';
 
 export default function deleteAction(
   this: MemFsEditor,
@@ -24,7 +24,9 @@ export default function deleteAction(
 
   const globOptions = options.globOptions ?? {};
   const files = new Set([
-    ...globSync(paths, { ...globOptions, absolute: true, onlyFiles: true }).map((filePath) => path.resolve(filePath)),
+    ...globSync(paths, { ...globOptions, absolute: true, onlyFiles: true }).map(
+      (filePath) => path.resolve(filePath),
+    ),
     ...multimatch(
       this.store
         .all()

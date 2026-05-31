@@ -2,46 +2,53 @@
   "name": "mem-fs-editor",
   "version": "12.0.4",
   "description": "File edition helpers working on top of mem-fs",
-  "repository": "SBoudrias/mem-fs-editor",
   "license": "MIT",
-  "author": "Simon Boudrias",
+  "author": "Simon Boudrias <admin@simonboudrias.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SBoudrias/mem-fs.git"
+  },
+  "files": [
+    "dist/"
+  ],
   "type": "module",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    },
-    "./state": {
-      "types": "./dist/state.d.ts",
-      "default": "./dist/state.js"
-    },
-    "./transform": {
-      "types": "./dist/transform.d.ts",
-      "default": "./dist/transform.js"
-    }
+    ".": "./src/index.ts",
+    "./state": "./src/state.ts",
+    "./transform": "./src/transform.ts",
+    "./package.json": "./package.json"
   },
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "files": [
-    "dist"
-  ],
+  "publishConfig": {
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./state": {
+        "types": "./dist/state.d.ts",
+        "default": "./dist/state.js"
+      },
+      "./transform": {
+        "types": "./dist/transform.d.ts",
+        "default": "./dist/transform.js"
+      },
+      "./package.json": "./package.json"
+    },
+    "access": "public"
+  },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
-    "fix": "eslint . --fix",
-    "prepare": "npm run build",
-    "pretest": "eslint .",
-    "test": "vitest --run"
+    "tsc": "tsc"
   },
   "dependencies": {
-    "@types/ejs": "^3.1.5",
-    "@types/picomatch": "^4.0.2",
     "binaryextensions": "^6.11.0",
-    "commondir": "^1.0.1",
+    "commondir": "^1.0.0",
     "debug": "^4.4.3",
     "deep-extend": "^0.6.0",
     "ejs": "^5.0.1",
     "isbinaryfile": "5.0.7",
-    "minimatch": "^10.2.4",
+    "minimatch": "^9.0.5",
     "multimatch": "^8.0.0",
     "normalize-path": "^3.0.0",
     "textextensions": "^6.11.0",
@@ -49,27 +56,15 @@
     "vinyl": "^3.0.1"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.3.4",
-    "@eslint/js": "^10.0.1",
     "@types/commondir": "^1.0.2",
     "@types/debug": "^4.1.12",
     "@types/deep-extend": "^0.6.2",
+    "@types/ejs": "^3.1.5",
     "@types/escape-regexp": "^0.0.3",
     "@types/normalize-path": "^3.0.2",
-    "@typescript-eslint/eslint-plugin": "^8.56.1",
-    "@typescript-eslint/parser": "^8.56.1",
-    "@vitest/coverage-v8": "^4.0.18",
+    "@types/picomatch": "^4.0.2",
     "escape-regexp": "0.0.1",
-    "eslint": "^10.0.2",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-config-xo": "0.46.0",
-    "eslint-plugin-prettier": "^5.5.5",
-    "globals": "^17.3.0",
-    "prettier": "^3.8.1",
-    "prettier-plugin-packagejson": "^3.0.0",
-    "typescript": "^6.0.2",
-    "typescript-eslint": "^8.56.1",
-    "vitest": "^4.0.18"
+    "mem-fs": "workspace:^"
   },
   "peerDependencies": {
     "@types/node": ">=20",
@@ -82,8 +77,5 @@
   },
   "engines": {
     "node": ">=20.0.0"
-  },
-  "acceptDependencies": {
-    "isbinaryfile": "^6.0.0"
   }
 }

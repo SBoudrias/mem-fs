@@ -1,9 +1,9 @@
 import { describe, it, expect, vi } from 'vitest';
 import fs from 'fs';
 import path from 'path';
-import { getCommonPath, globify, isBinary } from '../src/util.js';
+import { getCommonPath, globify, isBinary } from '../src/util.ts';
 import normalize from 'normalize-path';
-import { getFixture } from './fixtures.js';
+import { getFixture } from './fixtures.ts';
 
 describe('getCommonPath()', () => {
   it('find the common root of /a/b/c, where /a/b/c is an existing directory', () => {
@@ -46,7 +46,10 @@ describe('globify()', () => {
 
   it('returns pattern matching both files and directory for nonexisting paths', () => {
     const filePath = '/nonexisting.file';
-    expect(globify(filePath)).toEqual([normalize(filePath), normalize(path.join(filePath, '**'))]);
+    expect(globify(filePath)).toEqual([
+      normalize(filePath),
+      normalize(path.join(filePath, '**')),
+    ]);
   });
 
   it('returns glob for glob path', () => {

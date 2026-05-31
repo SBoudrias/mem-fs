@@ -1,5 +1,5 @@
 import { EOL } from 'os';
-import type { MemFsEditor } from '../index.js';
+import type { MemFsEditor } from '../index.ts';
 
 export default function append(
   this: MemFsEditor,
@@ -23,6 +23,8 @@ export default function append(
     currentContent = currentContent.trimEnd();
   }
 
-  const newContent = currentContent ? currentContent + opts.separator + contents.toString() : contents;
+  const newContent = currentContent
+    ? currentContent + opts.separator + contents.toString()
+    : contents;
   this.write(to, newContent);
 }
