@@ -3252,10 +3252,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"isbinaryfile@npm:5.0.7":
-  version: 5.0.7
-  resolution: "isbinaryfile@npm:5.0.7"
-  checksum: 10/af240b2a80db5cffbb3ddcb4d89403802d6b67d21b63fbcc0be5cefcefc013f499477c5837a5b2f029ba3d163543eab36eaee7cd701f2c44ee5ac890f0fadac5
+"isbinaryfile@npm:6.0.0":
+  version: 6.0.0
+  resolution: "isbinaryfile@npm:6.0.0"
+  checksum: 10/658798544bb111df08550d9a075c4180e8fe3b567c9137cbd4ef3592ccf03cbb2d4ea12df2e7e594d88abe43f2f33c8f57a56d8974dfa7406f0fef5f1b9542e9
   languageName: node
   linkType: hard
 
@@ -3551,7 +3551,7 @@ __metadata:
     deep-extend: "npm:^0.6.0"
     ejs: "npm:^6.0.1"
     escape-regexp: "npm:0.0.1"
-    isbinaryfile: "npm:5.0.7"
+    isbinaryfile: "npm:6.0.0"
     mem-fs: "workspace:^"
     minimatch: "npm:^9.0.5"
     multimatch: "npm:^8.0.0"
