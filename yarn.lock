@@ -2423,12 +2423,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ejs@npm:^5.0.1":
-  version: 5.0.2
-  resolution: "ejs@npm:5.0.2"
+"ejs@npm:^6.0.1":
+  version: 6.0.1
+  resolution: "ejs@npm:6.0.1"
   bin:
     ejs: bin/cli.js
-  checksum: 10/ca0f0bde379ae0ca5b69df22533ef9fc76655677f6bf0adae5e11325783d28fca4fef0e02a2523329f6c0a6e44aeee1e7d4aa669edc3ffd3cc04706f4cd00b17
+  checksum: 10/16ff6a9073256c6854607e8e5669f8b96b5b6e43e40dd58c6c85d43a13c4b0423ae1a78326fef2626777410b553b9c2071ab6fe07e14564345c493bc532f4714
   languageName: node
   linkType: hard
 
@@ -3549,7 +3549,7 @@ __metadata:
     commondir: "npm:^1.0.0"
     debug: "npm:^4.4.3"
     deep-extend: "npm:^0.6.0"
-    ejs: "npm:^5.0.1"
+    ejs: "npm:^6.0.1"
     escape-regexp: "npm:0.0.1"
     isbinaryfile: "npm:5.0.7"
     mem-fs: "workspace:^"
