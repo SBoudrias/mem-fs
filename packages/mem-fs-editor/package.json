@@ -46,7 +46,7 @@
     "commondir": "^1.0.0",
     "debug": "^4.4.3",
     "deep-extend": "^0.6.0",
-    "ejs": "^5.0.1",
+    "ejs": "^6.0.1",
     "isbinaryfile": "5.0.7",
     "minimatch": "^9.0.5",
     "multimatch": "^8.0.0",
