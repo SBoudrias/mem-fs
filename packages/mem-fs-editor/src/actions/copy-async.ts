@@ -135,7 +135,7 @@ export async function copyAsync<
 
   for (const resolvedFromPath of resolvedFromPaths) {
     const { resolvedFrom } = resolvedFromPath;
-    if (this.store.existsInMemory(resolvedFrom)) {
+    if (this.exists(resolvedFrom)) {
       storeFiles.push(resolvedFrom);
     } else {
       globResolved.push(resolvedFromPath);
@@ -156,6 +156,7 @@ export async function copyAsync<
 
     const normalizedStoreFilePaths = this.store
       .all()
+      .filter((file) => this.exists(file.path))
       .map((file) => file.path)
       .filter((filePath) => !diskFiles.includes(filePath))
       .map((filePath) => normalize(filePath))

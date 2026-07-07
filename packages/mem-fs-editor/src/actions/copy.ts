@@ -122,6 +122,7 @@ export function copy<const TransformData = unknown, const TransformOptions = unk
 
     const normalizedStoreFilePaths = this.store
       .all()
+      .filter((file) => this.exists(file.path))
       .map((file) => file.path)
       .filter((filePath) => !globbedFiles.includes(filePath))
       .map((filePath) => normalize(filePath))
