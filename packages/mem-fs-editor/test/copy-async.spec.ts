@@ -81,6 +81,19 @@ for (const method of ['copy', 'copyAsync'] as const) {
       expect(memFs.read(path.join(destDir, 'file-b.txt'))).toBe('b');
     });
 
+    it('skips deleted in-memory files when copying a directory', async () => {
+      const sourceDir = getFixture('../../test/foo');
+      const destDir = getFixture('../../test/bar');
+      memFs.write(path.join(sourceDir, 'file-a.txt'), 'a');
+      memFs.delete(path.join(sourceDir, 'file-a.txt'));
+      memFs.write(path.join(sourceDir, 'file-b.txt'), 'b');
+
+      await memFs[method]('**', destDir, { fromBasePath: sourceDir });
+
+      expect(() => memFs.read(path.join(destDir, 'file-a.txt'))).toThrow();
+      expect(memFs.read(path.join(destDir, 'file-b.txt'))).toBe('b');
+    });
+
     it('can copy relative directory not committed', async () => {
       const sourceDir = getFixture('../../test/foo');
       const destDir = getFixture('../../test/bar');
