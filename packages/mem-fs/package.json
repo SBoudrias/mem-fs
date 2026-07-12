@@ -1,6 +1,6 @@
 {
   "name": "mem-fs",
-  "version": "4.1.4",
+  "version": "4.1.5",
   "description": "Simple in-memory vinyl file store",
   "license": "MIT",
   "author": "Simon Boudrias <admin@simonboudrias.com>",
