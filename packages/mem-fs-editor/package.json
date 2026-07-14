@@ -42,6 +42,8 @@
     "tsc": "tsc"
   },
   "dependencies": {
+    "@types/ejs": "^3.1.5",
+    "@types/picomatch": "^4.0.2",
     "binaryextensions": "^6.11.0",
     "commondir": "^1.0.0",
     "debug": "^4.4.3",
@@ -59,10 +61,8 @@
     "@types/commondir": "^1.0.2",
     "@types/debug": "^4.1.12",
     "@types/deep-extend": "^0.6.2",
-    "@types/ejs": "^3.1.5",
     "@types/escape-regexp": "^0.0.3",
     "@types/normalize-path": "^3.0.2",
-    "@types/picomatch": "^4.0.2",
     "escape-regexp": "0.0.1",
     "mem-fs": "^4.1.5"
   },
