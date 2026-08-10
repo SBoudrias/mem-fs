@@ -90,6 +90,16 @@ export async function loadFileAsync(filepath: string): Promise<File> {
   }
 }
 
+/**
+ * The store is generic over its file type, but files are always loaded as
+ * `File`. Since `StoreFile` is a structural subtype of `{ path: string }`
+ * that every `File` satisfies, we assert the loaded file into the store's
+ * file type.
+ */
+function toStoreFile<StoreFile extends { path: string }>(file: File): StoreFile {
+  return file as File & StoreFile;
+}
+
 export class Store<StoreFile extends { path: string } = File> extends EventEmitter {
   private store = new Map<string, StoreFile>();
   private asyncStore = new Map<string, Promise<StoreFile>>();
@@ -101,7 +111,7 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
       return cached;
     }
 
-    const file = loadFile(filepath) as unknown as StoreFile;
+    const file = toStoreFile<StoreFile>(loadFile(filepath));
     this.store.set(filepath, file);
     return file;
   }
@@ -120,8 +130,9 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
 
     const loading = loadFileAsync(filepath)
       .then((file) => {
-        this.store.set(filepath, file as unknown as StoreFile);
-        return file as unknown as StoreFile;
+        const storeFile = toStoreFile<StoreFile>(file);
+        this.store.set(filepath, storeFile);
+        return storeFile;
       })
       .finally(() => this.asyncStore.delete(filepath));
     this.asyncStore.set(filepath, loading);
