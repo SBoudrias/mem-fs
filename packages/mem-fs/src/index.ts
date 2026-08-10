@@ -91,57 +91,41 @@ export async function loadFileAsync(filepath: string): Promise<File> {
 }
 
 export class Store<StoreFile extends { path: string } = File> extends EventEmitter {
-  public loadFile: (filepath: string) => StoreFile;
-  public loadFileAsync: (filepath: string) => Promise<StoreFile>;
   private store = new Map<string, StoreFile>();
   private asyncStore = new Map<string, Promise<StoreFile>>();
 
-  constructor(options?: {
-    loadFile?: (filepath: string) => StoreFile;
-    loadFileAsync?: (filepath: string) => Promise<StoreFile>;
-  }) {
-    super();
-    const { loadFile: customLoadFile, loadFileAsync: customLoadFileAsync } =
-      options ?? {};
-    this.loadFile =
-      customLoadFile ?? (loadFile as unknown as (filepath: string) => StoreFile);
-    this.loadFileAsync =
-      customLoadFileAsync ??
-      (loadFileAsync as unknown as (filepath: string) => Promise<StoreFile>);
-  }
-
-  private load(filepath: string): StoreFile {
-    const file: StoreFile = this.loadFile(filepath);
-    this.store.set(filepath, file);
-    return file;
-  }
-
-  private async loadAsync(filepath: string): Promise<StoreFile> {
-    const file: StoreFile = await this.loadFileAsync(filepath);
-    this.store.set(filepath, file);
-    return file;
-  }
-
   get(filepath: string): StoreFile {
     filepath = path.resolve(filepath);
-    return this.store.get(filepath) || this.load(filepath);
+    const cached = this.store.get(filepath);
+    if (cached) {
+      return cached;
+    }
+
+    const file = loadFile(filepath) as unknown as StoreFile;
+    this.store.set(filepath, file);
+    return file;
   }
 
   getAsync(filepath: string): Promise<StoreFile> {
     filepath = path.resolve(filepath);
-    if (this.store.has(filepath)) {
-      return Promise.resolve(this.store.get(filepath)!);
+    const cached = this.store.get(filepath);
+    if (cached) {
+      return Promise.resolve(cached);
     }
 
-    if (this.asyncStore.has(filepath)) {
-      return this.asyncStore.get(filepath)!;
+    const pending = this.asyncStore.get(filepath);
+    if (pending) {
+      return pending;
     }
 
-    this.asyncStore.set(
-      filepath,
-      this.loadAsync(filepath).finally(() => this.asyncStore.delete(filepath)),
-    );
-    return this.asyncStore.get(filepath)!;
+    const loading = loadFileAsync(filepath)
+      .then((file) => {
+        this.store.set(filepath, file as unknown as StoreFile);
+        return file as unknown as StoreFile;
+      })
+      .finally(() => this.asyncStore.delete(filepath));
+    this.asyncStore.set(filepath, loading);
+    return loading;
   }
 
   existsInMemory(filepath: string): boolean {
