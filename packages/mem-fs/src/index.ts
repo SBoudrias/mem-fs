@@ -122,27 +122,26 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
     return file;
   }
 
-  get(filepath: string, opts?: { async?: false }): StoreFile;
-  get(filepath: string, opts: { async: true }): Promise<StoreFile>;
-  get(filepath: string, opts?: { async?: boolean }): StoreFile | Promise<StoreFile> {
+  get(filepath: string): StoreFile {
     filepath = path.resolve(filepath);
-    if (opts?.async) {
-      if (this.store.has(filepath)) {
-        return Promise.resolve(this.store.get(filepath)!);
-      }
+    return this.store.get(filepath) || this.load(filepath);
+  }
 
-      if (this.asyncStore.has(filepath)) {
-        return this.asyncStore.get(filepath)!;
-      }
+  getAsync(filepath: string): Promise<StoreFile> {
+    filepath = path.resolve(filepath);
+    if (this.store.has(filepath)) {
+      return Promise.resolve(this.store.get(filepath)!);
+    }
 
-      this.asyncStore.set(
-        filepath,
-        this.loadAsync(filepath).finally(() => this.asyncStore.delete(filepath)),
-      );
+    if (this.asyncStore.has(filepath)) {
       return this.asyncStore.get(filepath)!;
     }
 
-    return this.store.get(filepath) || this.load(filepath);
+    this.asyncStore.set(
+      filepath,
+      this.loadAsync(filepath).finally(() => this.asyncStore.delete(filepath)),
+    );
+    return this.asyncStore.get(filepath)!;
   }
 
   existsInMemory(filepath: string): boolean {
