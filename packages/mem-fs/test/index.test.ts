@@ -5,7 +5,6 @@ import File from 'vinyl';
 
 import { create, Store } from '../src/index.ts';
 import { Duplex } from 'stream';
-import { setTimeout } from 'timers/promises';
 
 const fixtureA = 'fixtures/file-a.txt';
 const fixtureB = 'fixtures/file-b.txt';
@@ -68,15 +67,15 @@ describe('mem-fs', () => {
 
   it('consecutive async calls should not call loadFileAsync multiple times', async () => {
     let loadFileCalled = false;
+    let resolveLoad!: (file: { path: string; contents: Buffer }) => void;
+    const pending = new Promise<{ path: string; contents: Buffer }>((resolve) => {
+      resolveLoad = resolve;
+    });
     const customLoader = new Store<{ path: string; contents: Buffer }>({
-      async loadFileAsync(filepath) {
+      loadFileAsync() {
         if (!loadFileCalled) {
           loadFileCalled = true;
-          await setTimeout(100);
-          return {
-            path: resolve(filepath),
-            contents: Buffer.from('a content'),
-          };
+          return pending;
         }
 
         throw new Error('Should not be called again');
@@ -86,10 +85,9 @@ describe('mem-fs', () => {
       customLoader
         .get('foo.txt', { async: true })
         .then((file) => file.contents.toString());
-    await expect(Promise.all([readFile(), readFile()])).resolves.toMatchObject([
-      'a content',
-      'a content',
-    ]);
+    const result = Promise.all([readFile(), readFile()]);
+    resolveLoad({ path: resolve('foo.txt'), contents: Buffer.from('a content') });
+    await expect(result).resolves.toMatchObject(['a content', 'a content']);
   });
 
   it('async call should load from memory if file is already loaded', async () => {

@@ -30,6 +30,10 @@ export function isFileTransform<StoreFile extends { path: string } = File>(
   );
 }
 
+function isErrnoException(error: unknown): error is NodeJS.ErrnoException {
+  return error instanceof Error && 'code' in error;
+}
+
 export function loadFile(filepath: string): File {
   const stat = fs.statSync(filepath, { throwIfNoEntry: false });
   if (stat?.isDirectory?.()) {
@@ -39,18 +43,18 @@ export function loadFile(filepath: string): File {
       path: filepath,
       stat,
       contents: null,
-    }) as unknown as File;
+    });
   }
 
   try {
-    return vinylFileSync(filepath) as unknown as File;
+    return vinylFileSync(filepath);
   } catch {
     return new File({
       cwd: process.cwd(),
       base: process.cwd(),
       path: filepath,
       contents: null,
-    }) as unknown as File;
+    });
   }
 }
 
@@ -64,11 +68,10 @@ export async function loadFileAsync(filepath: string): Promise<File> {
         path: filepath,
         stat,
         contents: null,
-      }) as unknown as File;
+      });
     }
   } catch (error) {
-    const err = error as NodeJS.ErrnoException;
-    if (err.code !== 'ENOENT') {
+    if (!isErrnoException(error) || error.code !== 'ENOENT') {
       // Preserve behavior of loadFile (sync) for non-ENOENT errors.
       throw error;
     }
@@ -76,14 +79,14 @@ export async function loadFileAsync(filepath: string): Promise<File> {
   }
 
   try {
-    return (await vinylFile(filepath)) as unknown as File;
+    return await vinylFile(filepath);
   } catch {
     return new File({
       cwd: process.cwd(),
       base: process.cwd(),
       path: filepath,
       contents: null,
-    }) as unknown as File;
+    });
   }
 }
 
