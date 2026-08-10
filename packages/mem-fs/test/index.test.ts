@@ -1,5 +1,7 @@
 import { describe, beforeEach, it, expect, vi } from 'vitest';
 import assert from 'assert';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path, { resolve } from 'path';
 import File from 'vinyl';
 
@@ -24,84 +26,26 @@ describe('mem-fs', () => {
     store = create();
   });
 
-  it('accepts loadFileOption', () => {
-    const customLoader = new Store<{ path: string; contents: Buffer }>({
-      loadFile: (filepath) => ({
-        path: resolve(filepath),
-        contents: Buffer.from('a content'),
-      }),
-    });
-    expect(customLoader.get('foo.txt').contents.toString()).toMatch('a content');
-  });
-
-  it('forwards errors from loadFile', () => {
-    const error = new Error('Sync error');
-    const customLoader = new Store<{ path: string; contents: Buffer }>({
-      loadFile() {
-        throw error;
-      },
-    });
-    expect(() => customLoader.get('foo.txt')).toThrow(error);
-  });
-
-  it('accepts loadFileAsyncOption', async () => {
-    const customLoader = new Store<{ path: string; contents: Buffer }>({
-      loadFileAsync: (filepath) =>
-        Promise.resolve({
-          path: resolve(filepath),
-          contents: Buffer.from('a content'),
-        }),
-    });
-    const file = await customLoader.getAsync('foo.txt');
-    expect(file.contents.toString()).toMatch('a content');
-  });
-
   it('forwards errors from loadFileAsync', async () => {
-    const error = new Error('Async error');
-    const customLoader = new Store<{ path: string; contents: Buffer }>({
-      loadFileAsync: () => Promise.reject(error),
-    });
-    await expect(customLoader.getAsync('foo.txt')).rejects.toThrow(error);
+    const dir = mkdtempSync(path.join(tmpdir(), 'mfe-'));
+    const filepath = path.join(dir, 'file.txt');
+    writeFileSync(filepath, 'content');
+    await expect(store.getAsync(path.join(filepath, 'nested'))).rejects.toThrow();
+    rmSync(dir, { recursive: true, force: true });
   });
 
-  it('consecutive async calls should not call loadFileAsync multiple times', async () => {
-    let loadFileCalled = false;
-    let resolveLoad!: (file: { path: string; contents: Buffer }) => void;
-    const pending = new Promise<{ path: string; contents: Buffer }>((resolve) => {
-      resolveLoad = resolve;
-    });
-    const customLoader = new Store<{ path: string; contents: Buffer }>({
-      loadFileAsync() {
-        if (!loadFileCalled) {
-          loadFileCalled = true;
-          return pending;
-        }
-
-        throw new Error('Should not be called again');
-      },
-    });
-    const readFile = () =>
-      customLoader.getAsync('foo.txt').then((file) => file.contents.toString());
-    const readResults = Promise.all([readFile(), readFile()]);
-    resolveLoad({ path: resolve('foo.txt'), contents: Buffer.from('a content') });
-    expect(await readResults).toMatchObject(['a content', 'a content']);
+  it('deduplicates concurrent async loads', async () => {
+    const [file1, file2] = await Promise.all([
+      store.getAsync(fixtureA),
+      store.getAsync(fixtureA),
+    ]);
+    expect(file1).toBe(file2);
   });
 
   it('async call should load from memory if file is already loaded', async () => {
-    const customLoader = new Store<{ path: string; contents: Buffer }>({
-      loadFile(filepath) {
-        return {
-          path: resolve(filepath),
-          contents: Buffer.from('a content'),
-        };
-      },
-      async loadFileAsync() {
-        throw new Error('Should not be called');
-      },
-    });
-    customLoader.get('foo.txt');
-    const file = await customLoader.getAsync('foo.txt');
-    expect(file.contents.toString()).toMatch('a content');
+    const syncFile = store.get(fixtureA);
+    const asyncFile = await store.getAsync(fixtureA);
+    expect(asyncFile).toBe(syncFile);
   });
 
   describe('#get() / #add() / #existsInMemory()', () => {

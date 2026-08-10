@@ -46,8 +46,7 @@ for (const method of ['copy', 'copyAsync'] as const) {
 
     it('supports non-vinyl files', async () => {
       const filepath = getFixture('file-a.txt');
-      const { contents, path } = memFs.store.loadFile(filepath);
-      const file = { contents, path };
+      const file = { contents: Buffer.from('content'), path: filepath };
       memFs.store.add(file);
       const newPath = '/new/path/file.txt';
       await memFs[method](filepath, newPath);
