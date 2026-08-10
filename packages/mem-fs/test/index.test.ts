@@ -52,7 +52,7 @@ describe('mem-fs', () => {
           contents: Buffer.from('a content'),
         }),
     });
-    const file = await customLoader.get('foo.txt', { async: true });
+    const file = await customLoader.getAsync('foo.txt');
     expect(file.contents.toString()).toMatch('a content');
   });
 
@@ -61,7 +61,7 @@ describe('mem-fs', () => {
     const customLoader = new Store<{ path: string; contents: Buffer }>({
       loadFileAsync: () => Promise.reject(error),
     });
-    await expect(customLoader.get('foo.txt', { async: true })).rejects.toThrow(error);
+    await expect(customLoader.getAsync('foo.txt')).rejects.toThrow(error);
   });
 
   it('consecutive async calls should not call loadFileAsync multiple times', async () => {
@@ -81,9 +81,7 @@ describe('mem-fs', () => {
       },
     });
     const readFile = () =>
-      customLoader
-        .get('foo.txt', { async: true })
-        .then((file) => file.contents.toString());
+      customLoader.getAsync('foo.txt').then((file) => file.contents.toString());
     const readResults = Promise.all([readFile(), readFile()]);
     resolveLoad({ path: resolve('foo.txt'), contents: Buffer.from('a content') });
     expect(await readResults).toMatchObject(['a content', 'a content']);
@@ -102,7 +100,7 @@ describe('mem-fs', () => {
       },
     });
     customLoader.get('foo.txt');
-    const file = await customLoader.get('foo.txt', { async: true });
+    const file = await customLoader.getAsync('foo.txt');
     expect(file.contents.toString()).toMatch('a content');
   });
 
@@ -117,7 +115,7 @@ describe('mem-fs', () => {
     });
 
     it('load file from disk (async)', async () => {
-      const file = await store.get(fixtureA, { async: true });
+      const file = await store.getAsync(fixtureA);
       assert.equal(file.contents?.toString(), 'foo\n');
       assert.equal(file.cwd, process.cwd());
       assert.equal(file.base, process.cwd());
@@ -137,7 +135,7 @@ describe('mem-fs', () => {
     });
 
     it('file should exist in memory after getting it (async)', async () => {
-      await store.get(fixtureA, { async: true });
+      await store.getAsync(fixtureA);
       const exists = store.existsInMemory(fixtureA);
       assert.equal(exists, true);
     });
@@ -166,7 +164,7 @@ describe('mem-fs', () => {
     });
 
     it('returns empty file reference if file does not exist (async)', async () => {
-      const file = await store.get(absentFile, { async: true });
+      const file = await store.getAsync(absentFile);
       assert.equal(file.contents, null);
       assert.equal(file.cwd, process.cwd());
       assert.equal(file.base, process.cwd());
