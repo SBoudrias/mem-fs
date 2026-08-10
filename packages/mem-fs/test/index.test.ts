@@ -52,9 +52,8 @@ describe('mem-fs', () => {
           contents: Buffer.from('a content'),
         }),
     });
-    expect(
-      (await customLoader.get('foo.txt', { async: true })).contents.toString(),
-    ).toMatch('a content');
+    const file = await customLoader.get('foo.txt', { async: true });
+    expect(file.contents.toString()).toMatch('a content');
   });
 
   it('forwards errors from loadFileAsync', async () => {
@@ -85,9 +84,9 @@ describe('mem-fs', () => {
       customLoader
         .get('foo.txt', { async: true })
         .then((file) => file.contents.toString());
-    const result = Promise.all([readFile(), readFile()]);
+    const readResults = Promise.all([readFile(), readFile()]);
     resolveLoad({ path: resolve('foo.txt'), contents: Buffer.from('a content') });
-    await expect(result).resolves.toMatchObject(['a content', 'a content']);
+    expect(await readResults).toMatchObject(['a content', 'a content']);
   });
 
   it('async call should load from memory if file is already loaded', async () => {
@@ -103,9 +102,8 @@ describe('mem-fs', () => {
       },
     });
     customLoader.get('foo.txt');
-    expect(
-      (await customLoader.get('foo.txt', { async: true })).contents.toString(),
-    ).toMatch('a content');
+    const file = await customLoader.get('foo.txt', { async: true });
+    expect(file.contents.toString()).toMatch('a content');
   });
 
   describe('#get() / #add() / #existsInMemory()', () => {
