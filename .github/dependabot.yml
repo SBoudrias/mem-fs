@@ -4,12 +4,12 @@ updates:
     directory: '/'
     schedule:
       interval: monthly
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
     ignore:
       - dependency-name: '@types/node'
         versions: ['>=18']
-      - dependency-name: '*'
-        update-types: ['version-update:semver-minor', 'version-update:semver-patch']
     groups:
       vitest:
         patterns:
@@ -27,4 +27,6 @@ updates:
     directory: '/'
     schedule:
       interval: monthly
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
