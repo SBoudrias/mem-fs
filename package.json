@@ -31,7 +31,7 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-config-xo": "^0.50.0",
     "nano-staged": "^1.0.2",
-    "oxfmt": "^0.52.0",
+    "oxfmt": "^0.62.0",
     "turbo": "^2.9.4",
     "typescript": "^6.0.2",
     "typescript-eslint": "^8.58.0",
