@@ -44,6 +44,17 @@ for (const method of ['copy', 'copyAsync'] as const) {
       expect(memFs.store.get(newPath).state).toBe('modified');
     });
 
+    it('copy single file to the exact destination when globOptions is provided', async () => {
+      // #61: passing globOptions must not make a single-file copy treat the
+      // destination as a directory and append the source basename.
+      const filepath = getFixture('file-a.txt');
+      const initialContents = memFs.read(filepath);
+      const newPath = '/new/path/dest.txt';
+      await memFs[method](filepath, newPath, { globOptions: {} });
+      expect(memFs.read(newPath)).toBe(initialContents);
+      expect(memFs.store.get(newPath).state).toBe('modified');
+    });
+
     it('supports non-vinyl files', async () => {
       const filepath = getFixture('file-a.txt');
       const { contents, path } = memFs.store.loadFile(filepath);

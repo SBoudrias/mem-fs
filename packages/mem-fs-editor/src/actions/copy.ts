@@ -94,7 +94,6 @@ export function copy<const TransformData = unknown, const TransformOptions = unk
   const { preferFiles } = resolveGlobOptions({
     noGlob,
     hasDynamicPattern,
-    hasGlobOptions,
   });
 
   const foundFiles: ResolvedFrom[] = [];
