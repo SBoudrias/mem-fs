@@ -35,7 +35,7 @@ yarn lerna version           # interactive: pick the bump per package
 git push origin main --follow-tags
 ```
 
-Pushing the tag triggers `.github/workflows/publish.yaml`:
+Pushing the tag triggers `.github/workflows/publish.yml`:
 
 1. **test** — `yarn install --immutable` + `yarn vitest run`
 2. **build** — `yarn tsc`, uploads each `dist/` as an artifact
