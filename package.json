@@ -13,7 +13,7 @@
   ],
   "type": "module",
   "scripts": {
-    "prepare": "git config --local include.path ../.gitconfig || true",
+    "postinstall": "git config --local include.path ../.gitconfig || true",
     "prepublishOnly": "yarn tsc",
     "pretest": "package lint --check && eslint . && oxfmt --check && yarn tsc",
     "test": "vitest run --coverage",
