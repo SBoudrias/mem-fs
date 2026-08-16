@@ -15,6 +15,9 @@ name: Release
 #     that runs during build can publish the package.
 #   - Only the publish job has `id-token: write`; every job uses
 #     `persist-credentials: false` on checkout.
+#   - `scripts/apply-publishconfig.mjs` rewrites the manifest (main/types/exports)
+#     from `publishConfig` before staging, because npm (unlike lerna-lite) does
+#     not apply publishConfig manifest overrides. See CONTRIBUTING.md.
 
 on:
   push:
@@ -105,6 +108,8 @@ jobs:
           node-version: 24 # bundles npm 11.17 (>= 11.15 required for stage publish)
           registry-url: https://registry.npmjs.org
           package-manager-cache: false
+      - name: Apply publishConfig overrides
+        run: node scripts/apply-publishconfig.mjs "packages/$PKG/package.json"
       - name: Stage npm release
         run: |
           cd "packages/$PKG"
