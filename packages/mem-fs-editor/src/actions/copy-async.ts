@@ -127,7 +127,6 @@ export async function copyAsync<
   const { preferFiles } = resolveGlobOptions({
     noGlob,
     hasDynamicPattern,
-    hasGlobOptions,
   });
 
   const storeFiles: string[] = [];

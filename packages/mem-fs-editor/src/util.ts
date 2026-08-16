@@ -107,12 +107,10 @@ export function resolveFromPaths({
 
 export function resolveGlobOptions({
   noGlob,
-  hasGlobOptions,
   hasDynamicPattern,
 }: {
   noGlob?: boolean;
-  hasGlobOptions?: boolean;
   hasDynamicPattern?: boolean;
 }) {
-  return { preferFiles: noGlob || (!hasGlobOptions && !hasDynamicPattern) };
+  return { preferFiles: noGlob || !hasDynamicPattern };
 }
