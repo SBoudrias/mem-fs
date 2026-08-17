@@ -10,7 +10,7 @@ import {
 import type { MemFsEditorFile } from '../index.ts';
 
 function hasErrorCode(error: unknown): error is { code: string } {
-  return typeof error === 'object' && error !== null && 'code' in error;
+  return typeof error === 'object' && error != null && 'code' in error;
 }
 
 async function write(file: MemFsEditorFile): Promise<void> {
@@ -35,7 +35,7 @@ async function write(file: MemFsEditorFile): Promise<void> {
   const newMode = file.stat?.mode;
   await fs.writeFile(file.path, file.contents, { mode: newMode });
 
-  if (newMode !== undefined) {
+  if (newMode != null) {
     const { mode: existingMode } = await fs.stat(file.path);
     // oxlint-disable-next-line no-bitwise
     if ((existingMode & 0o777) !== (newMode & 0o777)) {

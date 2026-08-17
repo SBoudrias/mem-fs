@@ -8,7 +8,7 @@ import textextensions from 'textextensions';
 import binaryextensions from 'binaryextensions';
 
 function notNullOrExclusion(file?: string): boolean {
-  return file !== undefined && !file.startsWith('!');
+  return file != null && !file.startsWith('!');
 }
 
 export function getCommonPath(filePath: string | string[]): string {
@@ -85,7 +85,7 @@ export function isBinary(filePath: string, newFileContents?: Buffer): boolean {
 
   return (
     (fs.existsSync(filePath) && isBinaryFileSync(filePath)) ||
-    (newFileContents !== undefined && isBinaryFileSync(newFileContents))
+    (newFileContents != null && isBinaryFileSync(newFileContents))
   );
 }
 

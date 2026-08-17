@@ -64,7 +64,7 @@ export const resetFile = (file: MemFsEditorFile): void => {
 };
 
 export const clearFileState = (file: MemFsEditorFile): void => {
-  if (file.state !== undefined) {
+  if (file.state != null) {
     file.stateCleared = file.state;
   }
 

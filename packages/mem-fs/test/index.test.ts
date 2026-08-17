@@ -201,7 +201,7 @@ describe('mem-fs', () => {
 
         stream.on('data', (file: File) => {
           const expected = files[index];
-          if (expected === undefined) {
+          if (expected == null) {
             throw new Error('Received more files than expected');
           }
 
@@ -225,7 +225,7 @@ describe('mem-fs', () => {
 
         stream.on('data', (file: File) => {
           const expected = files[index];
-          if (expected === undefined) {
+          if (expected == null) {
             throw new Error('Received more files than expected');
           }
 

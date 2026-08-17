@@ -105,6 +105,10 @@ export default defineConfig({
     // One declaration per statement (XO-compatible direction)
     'eslint/one-var': ['error', 'never'],
     'eslint/no-plusplus': ['error', { allowForLoopAfterthoughts: true }],
+    // `== null` / `!= null` is the one allowed loose equality: it matches both
+    // `null` and `undefined` without distinguishing them.
+    'eslint/eqeqeq': ['error', 'always', { null: 'ignore' }],
+    'eslint/no-eq-null': 'off',
     // Mixed imports use inline `type` specifiers; all-type imports use
     // top-level `import type` (enforced by no-import-type-side-effects)
     'typescript/consistent-type-imports': [

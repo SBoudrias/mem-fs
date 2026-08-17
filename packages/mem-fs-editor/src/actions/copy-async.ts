@@ -174,7 +174,7 @@ export async function copyAsync<
 
   if (typeof from === 'string') {
     const oneFile = await getOneFile(from);
-    if (oneFile !== undefined) {
+    if (oneFile != null) {
       return copySingleAsync(this, oneFile, resolvedTo, options);
     }
   }

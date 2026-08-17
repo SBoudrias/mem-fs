@@ -191,13 +191,13 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
       pipelineTransforms = [options, ...transforms];
     } else if (options) {
       ({ filter } = options);
-      if (options.refresh !== undefined) {
+      if (options.refresh != null) {
         ({ refresh } = options);
       }
 
-      if (options.resolveConflict !== undefined) {
+      if (options.resolveConflict != null) {
         ({ resolveConflict } = options);
-      } else if (options.allowOverride !== undefined) {
+      } else if (options.allowOverride != null) {
         resolveConflict = (_current, newFile) => newFile;
       }
     }
