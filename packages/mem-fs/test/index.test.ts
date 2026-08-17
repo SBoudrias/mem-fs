@@ -2,7 +2,7 @@ import { describe, beforeEach, it, expect, vi } from 'vitest';
 import assert from 'node:assert';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import path, { resolve } from 'node:path';
+import path from 'node:path';
 import File from 'vinyl';
 
 import { create, type Store } from '../src/index.ts';
@@ -18,11 +18,26 @@ const coffeeFile = new File({
   contents: Buffer.from('test = 123'),
 });
 
+// Files loaded from disk always have Buffer contents; narrow before reading.
+const contentsString = (file: File): string => {
+  if (!Buffer.isBuffer(file.contents)) {
+    throw new TypeError('Expected file contents to be a Buffer');
+  }
+
+  return file.contents.toString();
+};
+
+// The pipeline() tests deliberately reach into the store's private internal
+// map to verify whether pipeline() replaced it.
+const internalStoreMap = (store: Store): Map<string, File> =>
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion
+  (store as unknown as { store: Map<string, File> }).store;
+
 describe('mem-fs', () => {
   let store: Store;
 
   beforeEach(() => {
-    process.chdir(__dirname);
+    process.chdir(import.meta.dirname);
     store = create();
   });
 
@@ -51,7 +66,7 @@ describe('mem-fs', () => {
   describe('#get() / #add() / #existsInMemory()', () => {
     it('load file from disk', () => {
       const file = store.get(fixtureA);
-      assert.equal(file.contents?.toString(), 'foo\n');
+      assert.equal(contentsString(file), 'foo\n');
       assert.equal(file.cwd, process.cwd());
       assert.equal(file.base, process.cwd());
       assert.equal(file.relative, fixtureA);
@@ -60,7 +75,7 @@ describe('mem-fs', () => {
 
     it('load file from disk (async)', async () => {
       const file = await store.getAsync(fixtureA);
-      assert.equal(file.contents?.toString(), 'foo\n');
+      assert.equal(contentsString(file), 'foo\n');
       assert.equal(file.cwd, process.cwd());
       assert.equal(file.base, process.cwd());
       assert.equal(file.relative, fixtureA);
@@ -89,13 +104,13 @@ describe('mem-fs', () => {
       file.contents = Buffer.from('bar');
       store.add(file);
       const file2 = store.get(fixtureA);
-      assert.equal(file2.contents?.toString(), 'bar');
+      assert.equal(contentsString(file2), 'bar');
     });
 
     it('retrieve file from memory', () => {
       store.add(coffeeFile);
       const file = store.get('/test/file.coffee');
-      assert.equal(file.contents?.toString(), 'test = 123');
+      assert.equal(contentsString(file), 'test = 123');
     });
 
     it('returns empty file reference if file does not exist', () => {
@@ -127,7 +142,7 @@ describe('mem-fs', () => {
         new Promise<void>((resolve) => {
           store.on('change', () => {
             const file = store.get('/test/file.coffee');
-            assert.equal(file.contents?.toString(), 'test = 123');
+            assert.equal(contentsString(file), 'test = 123');
             resolve();
           });
 
@@ -193,9 +208,14 @@ describe('mem-fs', () => {
         const files = [fixtureA, fixtureB];
         const stream = store.stream();
 
-        stream.on('data', (file) => {
-          assert.equal(path.resolve(files[index]!), file.path);
-          index++;
+        stream.on('data', (file: File) => {
+          const expected = files[index];
+          if (expected === undefined) {
+            throw new Error('Received more files than expected');
+          }
+
+          assert.equal(path.resolve(expected), file.path);
+          index += 1;
         });
 
         stream.on('end', () => {
@@ -212,9 +232,14 @@ describe('mem-fs', () => {
           filter: (file) => file.path.endsWith('file-a.txt'),
         });
 
-        stream.on('data', (file) => {
-          assert.equal(path.resolve(files[index]!), file.path);
-          index++;
+        stream.on('data', (file: File) => {
+          const expected = files[index];
+          if (expected === undefined) {
+            throw new Error('Received more files than expected');
+          }
+
+          assert.equal(path.resolve(expected), file.path);
+          index += 1;
         });
 
         stream.on('end', () => {
@@ -232,14 +257,12 @@ describe('mem-fs', () => {
 
     it('creates a new store with all same files', async () => {
       const oldFiles = store.all();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const oldStore = (store as any).store;
+      const oldStore = internalStoreMap(store);
 
       await store.pipeline();
 
       expect(oldFiles).toEqual(store.all());
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      expect(oldStore).not.toBe((store as any).store);
+      expect(oldStore).not.toBe(internalStoreMap(store));
     });
 
     it('creates a new store with updated files', async () => {
@@ -256,7 +279,6 @@ describe('mem-fs', () => {
       await store.pipeline(
         { filter: (file) => file.path.includes(fixtureB) },
         Duplex.from(async (generator: AsyncIterable<File>) => {
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           for await (const _file of generator) {
             // Remove all files
           }
@@ -268,13 +290,11 @@ describe('mem-fs', () => {
     });
 
     it('does not create a new map if refresh is disabled', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const oldStore = (store as any).store;
+      const oldStore = internalStoreMap(store);
 
       await store.pipeline(
         { refresh: false },
         Duplex.from(async (generator: AsyncIterable<File>) => {
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           for await (const _file of generator) {
             // Remove all files
           }
@@ -283,14 +303,12 @@ describe('mem-fs', () => {
 
       expect(store.existsInMemory(fixtureA)).toBeTruthy();
       expect(store.existsInMemory(fixtureB)).toBeTruthy();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      expect(oldStore).toBe((store as any).store);
+      expect(oldStore).toBe(internalStoreMap(store));
     });
 
     it('options should be optional', async () => {
       await store.pipeline(
         Duplex.from(async (generator: AsyncIterable<File>) => {
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           for await (const _file of generator) {
             // Remove all files
           }
@@ -302,31 +320,27 @@ describe('mem-fs', () => {
     });
 
     it('emits events', async () => {
-      const listener = vi.fn();
+      const listener = vi.fn<(path: string) => void>();
       store.on('change', listener);
 
       const fileB = store.get(fixtureB);
       fileB.path += '.renamed';
 
       await store.pipeline(
-        Duplex.from(async function* (generator: AsyncIterable<File>) {
+        Duplex.from(async function* transformFiles(generator: AsyncIterable<File>) {
           for await (const file of generator) {
-            if (file.path.endsWith('.renamed')) {
-              yield file;
-            } else {
-              yield file.clone();
-            }
+            yield file.path.endsWith('.renamed') ? file : file.clone();
           }
         }),
       );
 
       expect(listener).toHaveBeenCalled();
       // Emits event for files only in oldStore
-      expect(listener).toHaveBeenCalledWith(resolve(fixtureB));
+      expect(listener).toHaveBeenCalledWith(path.resolve(fixtureB));
       // Emits event for files only in newStore
-      expect(listener).toHaveBeenCalledWith(resolve(`${fixtureB}.renamed`));
+      expect(listener).toHaveBeenCalledWith(path.resolve(`${fixtureB}.renamed`));
       // Emits event for changed file
-      expect(listener).toHaveBeenCalledWith(resolve(fixtureA));
+      expect(listener).toHaveBeenCalledWith(path.resolve(fixtureA));
     });
 
     describe('allowOverride option', () => {
@@ -347,7 +361,7 @@ describe('mem-fs', () => {
 
         expect(store.existsInMemory(fixtureA)).toBeTruthy();
         expect(store.existsInMemory(fixtureB)).toBeFalsy();
-        expect(store.get(fixtureA).contents?.toString()).toMatch('foo2');
+        expect(contentsString(store.get(fixtureA))).toMatch('foo2');
       });
     });
 
@@ -364,7 +378,7 @@ describe('mem-fs', () => {
 
         expect(store.existsInMemory(fixtureA)).toBeTruthy();
         expect(store.existsInMemory(fixtureB)).toBeFalsy();
-        expect(store.get(fixtureA).contents?.toString()).toMatch('foo');
+        expect(contentsString(store.get(fixtureA))).toMatch('foo');
       });
     });
   });
