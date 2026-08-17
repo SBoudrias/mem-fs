@@ -67,6 +67,13 @@ export default defineConfig({
     'oxc/no-this-in-exported-function': 'off',
     // Wrapping callback APIs legitimately needs the Promise constructor
     'promise/avoid-new': 'off',
+    // Node Transform / chmod APIs are callback- and bit-mask-based
+    'promise/prefer-await-to-callbacks': 'off',
+    'promise/prefer-await-to-then': 'off',
+    'promise/no-callback-in-promise': 'off',
+    'promise/always-return': 'off',
+    'node/callback-return': 'off',
+    'eslint/no-bitwise': 'off',
     // ReadonlyDeep-style parameters would require rewriting every signature
     'typescript/prefer-readonly-parameter-types': 'off',
     // vinyl's API uses `null` contents
@@ -99,6 +106,8 @@ export default defineConfig({
     'vitest/prefer-called-exactly-once-with': 'off',
     'vitest/prefer-called-times': 'off',
     'vitest/prefer-strict-equal': 'off',
+    // Store/editor classes do not use explicit member accessibility
+    'typescript/explicit-member-accessibility': 'off',
 
     // --- Configured to match the established style ---
 
