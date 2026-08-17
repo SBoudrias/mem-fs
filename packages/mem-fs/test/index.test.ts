@@ -18,15 +18,6 @@ const coffeeFile = new File({
   contents: Buffer.from('test = 123'),
 });
 
-// Files loaded from disk always have Buffer contents; narrow before reading.
-const contentsString = (file: File): string => {
-  if (!Buffer.isBuffer(file.contents)) {
-    throw new TypeError('Expected file contents to be a Buffer');
-  }
-
-  return file.contents.toString();
-};
-
 // The pipeline() tests deliberately reach into the store's private internal
 // map to verify whether pipeline() replaced it.
 const internalStoreMap = (store: Store): Map<string, File> =>
@@ -66,7 +57,7 @@ describe('mem-fs', () => {
   describe('#get() / #add() / #existsInMemory()', () => {
     it('load file from disk', () => {
       const file = store.get(fixtureA);
-      assert.equal(contentsString(file), 'foo\n');
+      assert.deepEqual(file.contents, Buffer.from('foo\n'));
       assert.equal(file.cwd, process.cwd());
       assert.equal(file.base, process.cwd());
       assert.equal(file.relative, fixtureA);
@@ -75,7 +66,7 @@ describe('mem-fs', () => {
 
     it('load file from disk (async)', async () => {
       const file = await store.getAsync(fixtureA);
-      assert.equal(contentsString(file), 'foo\n');
+      assert.deepEqual(file.contents, Buffer.from('foo\n'));
       assert.equal(file.cwd, process.cwd());
       assert.equal(file.base, process.cwd());
       assert.equal(file.relative, fixtureA);
@@ -104,13 +95,13 @@ describe('mem-fs', () => {
       file.contents = Buffer.from('bar');
       store.add(file);
       const file2 = store.get(fixtureA);
-      assert.equal(contentsString(file2), 'bar');
+      assert.deepEqual(file2.contents, Buffer.from('bar'));
     });
 
     it('retrieve file from memory', () => {
       store.add(coffeeFile);
       const file = store.get('/test/file.coffee');
-      assert.equal(contentsString(file), 'test = 123');
+      assert.deepEqual(file.contents, Buffer.from('test = 123'));
     });
 
     it('returns empty file reference if file does not exist', () => {
@@ -142,7 +133,7 @@ describe('mem-fs', () => {
         new Promise<void>((resolve) => {
           store.on('change', () => {
             const file = store.get('/test/file.coffee');
-            assert.equal(contentsString(file), 'test = 123');
+            assert.deepEqual(file.contents, Buffer.from('test = 123'));
             resolve();
           });
 
@@ -361,7 +352,7 @@ describe('mem-fs', () => {
 
         expect(store.existsInMemory(fixtureA)).toBeTruthy();
         expect(store.existsInMemory(fixtureB)).toBeFalsy();
-        expect(contentsString(store.get(fixtureA))).toMatch('foo2');
+        expect(store.get(fixtureA).contents).toStrictEqual(Buffer.from('foo2\n'));
       });
     });
 
@@ -378,7 +369,7 @@ describe('mem-fs', () => {
 
         expect(store.existsInMemory(fixtureA)).toBeTruthy();
         expect(store.existsInMemory(fixtureB)).toBeFalsy();
-        expect(contentsString(store.get(fixtureA))).toMatch('foo');
+        expect(store.get(fixtureA).contents).toStrictEqual(Buffer.from('foo\n'));
       });
     });
   });
