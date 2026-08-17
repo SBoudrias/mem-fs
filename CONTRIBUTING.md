@@ -19,7 +19,7 @@ yarn install
 
 ## Releasing
 
-Releases are tag-driven and staged. CI stages the package; a maintainer approves it with 2FA before it goes live.
+Releases are staged. CI stages the packages; a maintainer approves them with 2FA before they go live.
 
 ### Cut a release
 
@@ -35,13 +35,13 @@ yarn lerna version           # interactive: pick the bump per package
 git push origin main --follow-tags
 ```
 
-Pushing the tag triggers `.github/workflows/publish.yml`:
+Pushing to `main` triggers `.github/workflows/publish.yml`. A `guard` job checks whether any release tags point at the pushed commit and skips the rest of the workflow when there are none (so regular commits don't re-run CI):
 
 1. **test** — `yarn install --immutable` + `yarn vitest run`
-2. **build** — `yarn tsc`, uploads each `dist/` as an artifact
-3. **publish** — downloads the matching `dist/` artifact, runs `npm stage publish --ignore-scripts` for the tagged package
+2. **build** — `yarn tsc`
+3. **publish** — `yarn lerna publish from-git --stage --yes --no-git-reset`
 
-The package is now **staged**, not live.
+`lerna publish from-git` publishes every package tagged at HEAD (all tags created by `lerna version` point at the same commit). lerna-lite applies the `publishConfig` manifest overrides (main/types/exports) natively, runs the `prepublishOnly` build, and stages each package via npm's staged publishing. The packages are now **staged**, not live.
 
 ### Approve the release
 
@@ -60,7 +60,7 @@ cd packages/<name>
 npm publish --ignore-scripts --access public   # interactive 2FA
 ```
 
-Then configure the Trusted Publisher on npmjs.com. Later releases use the tag → stage → approve flow.
+Then configure the Trusted Publisher on npmjs.com. Later releases use the push → stage → approve flow.
 
 ## Published packages
 
