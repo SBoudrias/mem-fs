@@ -6,7 +6,7 @@ export default function append(
   to: string,
   contents: string | Buffer,
   options?: { create?: boolean; trimEnd?: boolean; separator?: string },
-) {
+): void {
   const opts = {
     create: false,
     trimEnd: true,

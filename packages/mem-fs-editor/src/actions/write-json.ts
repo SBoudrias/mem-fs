@@ -15,7 +15,7 @@ export default function writeJSON(
     replacer?: JSONReplacer,
     space?: string | number,
   ]
-) {
+): string {
   const indentation = space ?? DEFAULT_INDENTATION;
   const json =
     typeof replacer === 'function'

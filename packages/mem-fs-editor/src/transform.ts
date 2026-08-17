@@ -2,14 +2,19 @@ import { Transform } from 'node:stream';
 import commitFileAsync from './actions/commit-file-async.ts';
 import type { MemFsEditorFile } from './index.ts';
 
-export const createCommitTransform = () =>
+export const createCommitTransform = (): Transform =>
   new Transform({
     objectMode: true,
-    transform(file: MemFsEditorFile, _encoding, callback) {
-      commitFileAsync(file)
-        .then(() => {
-          callback(null, file);
-        })
-        .catch(callback);
+    // Node Transform streams are callback-based by design. The callback calls
+    // terminate each branch, which callback-return/no-useless-return cannot express.
+    // oxlint-disable promise/prefer-await-to-callbacks, promise/no-callback-in-promise, node/callback-return
+    async transform(file: MemFsEditorFile, _encoding, callback): Promise<void> {
+      try {
+        await commitFileAsync(file);
+        callback(null, file);
+      } catch (error) {
+        callback(error instanceof Error ? error : new Error(String(error)));
+      }
     },
+    // oxlint-enable promise/prefer-await-to-callbacks, promise/no-callback-in-promise, node/callback-return
   });

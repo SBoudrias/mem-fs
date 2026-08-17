@@ -1,6 +1,5 @@
 import path from 'node:path';
-import { globSync } from 'tinyglobby';
-import type { GlobOptions } from 'tinyglobby';
+import { globSync, type GlobOptions } from 'tinyglobby';
 import multimatch from 'multimatch';
 import normalize from 'normalize-path';
 
@@ -14,32 +13,29 @@ export default function deleteAction(
   options?: {
     globOptions?: Omit<GlobOptions, 'patterns' | 'absolute' | 'onlyFiles'>;
   },
-) {
-  if (!Array.isArray(paths)) {
-    paths = [paths];
-  }
+): void {
+  const pathsArray = Array.isArray(paths) ? paths : [paths];
+  const resolvedPaths = globify(pathsArray.map((filePath) => path.resolve(filePath)));
 
-  paths = paths.map((filePath) => path.resolve(filePath));
-  paths = globify(paths);
-  options ||= {};
-
-  const globOptions = options.globOptions ?? {};
+  const globOptions = options?.globOptions ?? {};
   const files = new Set([
-    ...globSync(paths, { ...globOptions, absolute: true, onlyFiles: true }).map(
-      (filePath) => path.resolve(filePath),
-    ),
+    ...globSync(resolvedPaths, {
+      ...globOptions,
+      absolute: true,
+      onlyFiles: true,
+    }).map((filePath) => path.resolve(filePath)),
     ...multimatch(
       this.store
         .all()
         .map((file) => file.path)
         .map((filePath) => normalize(filePath)),
-      paths,
+      resolvedPaths,
     ).map((filePath) => path.resolve(filePath)),
   ]);
-  files.forEach((file) => {
+  for (const file of files) {
     const storeFile = this.store.get(file);
     setDeletedFileState(storeFile);
     storeFile.contents = null;
     this.store.add(storeFile);
-  });
+  }
 }

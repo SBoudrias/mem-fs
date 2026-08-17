@@ -13,14 +13,15 @@ function hasErrorCode(error: unknown): error is { code: string } {
   return typeof error === 'object' && error !== null && 'code' in error;
 }
 
-async function write(file: MemFsEditorFile) {
+async function write(file: MemFsEditorFile): Promise<void> {
   if (!file.contents) {
     throw new Error(`${file.path} cannot write an empty file`);
   }
 
   const dir = path.dirname(file.path);
   try {
-    if (!(await fs.stat(dir)).isDirectory()) {
+    const dirStat = await fs.stat(dir);
+    if (!dirStat.isDirectory()) {
       throw new Error(`${dir} is not a directory`);
     }
   } catch (error) {
@@ -36,14 +37,14 @@ async function write(file: MemFsEditorFile) {
 
   if (newMode !== undefined) {
     const { mode: existingMode } = await fs.stat(file.path);
-    // eslint-disable-next-line no-bitwise
+    // oxlint-disable-next-line no-bitwise
     if ((existingMode & 0o777) !== (newMode & 0o777)) {
       await fs.chmod(file.path, newMode);
     }
   }
 }
 
-export default async function commitFileAsync(file: MemFsEditorFile) {
+export default async function commitFileAsync(file: MemFsEditorFile): Promise<void> {
   if (isFileStateModified(file)) {
     setCommittedFile(file);
     await write(file);
