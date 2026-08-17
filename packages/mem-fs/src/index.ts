@@ -6,8 +6,10 @@ import { type PipelineTransform, Readable, Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import fs from 'node:fs';
 
-// oxlint-disable-next-line typescript/no-explicit-any
-export type FileTransform<File> = PipelineTransform<PipelineTransform<any, File>, File>;
+export type FileTransform<StoreFile> = PipelineTransform<
+  AsyncIterable<StoreFile>,
+  StoreFile
+>;
 
 export type StreamOptions<StoreFile extends { path: string } = File> = {
   filter?: (file: StoreFile) => boolean;
@@ -90,18 +92,6 @@ export async function loadFileAsync(filepath: string): Promise<File> {
   }
 }
 
-/**
- * The store is generic over its file type, but files are always loaded as
- * `File`. Since `StoreFile` is a structural subtype of `{ path: string }`
- * that every `File` satisfies, we assert the loaded file into the store's
- * file type.
- */
-// oxlint-disable-next-line typescript/no-unnecessary-type-parameters
-function toStoreFile<StoreFile extends { path: string }>(file: File): StoreFile {
-  // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-  return file as File & StoreFile;
-}
-
 // EventEmitter is part of the public API (`store.on('change', ...)`)
 // oxlint-disable-next-line unicorn/prefer-event-target
 export class Store<StoreFile extends { path: string } = File> extends EventEmitter {
@@ -115,7 +105,9 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
       return cached;
     }
 
-    const file = toStoreFile<StoreFile>(loadFile(resolvedPath));
+    // Disk loads produce vinyl File; StoreFile is a structural { path: string } type.
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion
+    const file = loadFile(resolvedPath) as File & StoreFile;
     this.store.set(resolvedPath, file);
     return file;
   }
@@ -135,7 +127,9 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
     const loading = (async () => {
       try {
         const file = await loadFileAsync(resolvedPath);
-        const storeFile = toStoreFile<StoreFile>(file);
+        // Disk loads produce vinyl File; StoreFile is a structural { path: string } type.
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion
+        const storeFile = file as File & StoreFile;
         this.store.set(resolvedPath, storeFile);
         return storeFile;
       } finally {
@@ -240,25 +234,20 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
       }
     }
 
-    // The `any` assertions bridge the loose pipeline() overloads with our
-    // object-mode generic stream types.
-    // oxlint-disable typescript/no-explicit-any, typescript/no-unsafe-argument, typescript/no-unsafe-assignment, typescript/no-unsafe-type-assertion
-    const source = Readable.from(iterablefilter(this.store.values())) as any;
-    await pipeline(
-      source,
-      ...(pipelineTransforms as any),
-      new Transform({
-        objectMode: true,
-        // Node Transform streams are callback-based by design
-        // oxlint-disable-next-line promise/prefer-await-to-callbacks
-        transform(file: StoreFile, _encoding, callback) {
-          addFile?.(file);
-          // oxlint-disable-next-line promise/prefer-await-to-callbacks
-          callback(null);
-        },
-      }),
+    const source: AsyncIterable<StoreFile> = Readable.from(
+      iterablefilter(this.store.values()),
     );
-    // oxlint-enable typescript/no-explicit-any, typescript/no-unsafe-argument, typescript/no-unsafe-assignment, typescript/no-unsafe-type-assertion
+    const destination: NodeJS.WritableStream = new Transform({
+      objectMode: true,
+      // Node Transform streams are callback-based by design
+      // oxlint-disable-next-line promise/prefer-await-to-callbacks
+      transform(file: StoreFile, _encoding, callback) {
+        addFile?.(file);
+        // oxlint-disable-next-line promise/prefer-await-to-callbacks
+        callback(null);
+      },
+    });
+    await pipeline(source, ...pipelineTransforms, destination);
 
     if (newStore) {
       const oldStore = this.store;
