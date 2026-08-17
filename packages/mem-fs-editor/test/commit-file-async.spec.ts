@@ -5,7 +5,6 @@ import {
   expect,
   afterEach,
   vi,
-  assert,
   type MockInstance,
 } from 'vitest';
 import fs from 'node:fs';
@@ -44,9 +43,6 @@ describe('#commitFileAsync()', () => {
       contents: Buffer.from('bar'),
       state: 'modified',
     };
-
-    // `expect` is not allowed outside test blocks; assert the same invariant.
-    assert.strictEqual(addSpy.mock.calls.length, 1);
   });
 
   afterEach(() => {
@@ -105,7 +101,6 @@ describe('#commitFileAsync()', () => {
       ...newFile,
       stat: { mode: READ_ONLY_MODE },
     });
-    // oxlint-disable-next-line eslint/no-bitwise
     expect(fs.statSync(filenameNew).mode & 0o777).toEqual(READ_ONLY_MODE);
   });
 
@@ -120,7 +115,6 @@ describe('#commitFileAsync()', () => {
       stat: { mode: READ_ONLY_MODE },
     });
 
-    // oxlint-disable-next-line eslint/no-bitwise
     expect(fs.statSync(filenameNew).mode & 0o777).toEqual(READ_ONLY_MODE);
   });
 

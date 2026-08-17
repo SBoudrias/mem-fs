@@ -37,7 +37,6 @@ async function write(file: MemFsEditorFile): Promise<void> {
 
   if (newMode != null) {
     const { mode: existingMode } = await fs.stat(file.path);
-    // oxlint-disable-next-line no-bitwise
     if ((existingMode & 0o777) !== (newMode & 0o777)) {
       await fs.chmod(file.path, newMode);
     }

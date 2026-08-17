@@ -36,9 +36,9 @@ export interface VinylMemFsEditorFile
 
 // oxlint-disable-next-line typescript/no-unsafe-declaration-merging
 export class MemFsEditor<EditorFile extends MemFsEditorFile = VinylMemFsEditorFile> {
-  public store: Store<EditorFile>;
+  store: Store<EditorFile>;
 
-  public constructor(store: Store<EditorFile>) {
+  constructor(store: Store<EditorFile>) {
     this.store = store;
   }
 }

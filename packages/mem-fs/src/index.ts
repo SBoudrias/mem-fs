@@ -98,7 +98,7 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
   private store = new Map<string, StoreFile>();
   private readonly asyncStore = new Map<string, Promise<StoreFile>>();
 
-  public get(filepath: string): StoreFile {
+  get(filepath: string): StoreFile {
     const resolvedPath = path.resolve(filepath);
     const cached = this.store.get(resolvedPath);
     if (cached) {
@@ -112,7 +112,7 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
     return file;
   }
 
-  public getAsync(filepath: string): Promise<StoreFile> {
+  getAsync(filepath: string): Promise<StoreFile> {
     const resolvedPath = path.resolve(filepath);
     const cached = this.store.get(resolvedPath);
     if (cached) {
@@ -140,17 +140,17 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
     return loading;
   }
 
-  public existsInMemory(filepath: string): boolean {
+  existsInMemory(filepath: string): boolean {
     return this.store.has(path.resolve(filepath));
   }
 
-  public add(file: StoreFile): this {
+  add(file: StoreFile): this {
     this.store.set(file.path, file);
     this.emit('change', file.path);
     return this;
   }
 
-  public each(onEach: (file: StoreFile) => void): this {
+  each(onEach: (file: StoreFile) => void): this {
     for (const file of this.store.values()) {
       onEach(file);
     }
@@ -158,11 +158,11 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
     return this;
   }
 
-  public all(): StoreFile[] {
+  all(): StoreFile[] {
     return [...this.store.values()];
   }
 
-  public stream({ filter = () => true }: StreamOptions<StoreFile> = {}): Readable {
+  stream({ filter = () => true }: StreamOptions<StoreFile> = {}): Readable {
     function* iterablefilter(
       iterable: IterableIterator<StoreFile>,
     ): Generator<StoreFile, void, undefined> {
@@ -176,7 +176,7 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
     return Readable.from(iterablefilter(this.store.values()));
   }
 
-  public async pipeline(
+  async pipeline(
     options?: PipelineOptions<StoreFile> | FileTransform<StoreFile>,
     ...transforms: FileTransform<StoreFile>[]
   ): Promise<void> {
@@ -239,11 +239,8 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
     );
     const destination: NodeJS.WritableStream = new Transform({
       objectMode: true,
-      // Node Transform streams are callback-based by design
-      // oxlint-disable-next-line promise/prefer-await-to-callbacks
       transform(file: StoreFile, _encoding, callback) {
         addFile?.(file);
-        // oxlint-disable-next-line promise/prefer-await-to-callbacks
         callback(null);
       },
     });
