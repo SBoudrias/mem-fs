@@ -66,10 +66,10 @@ describe('globify()', () => {
   });
 
   it('throws if target path is neither a file or a directory', () => {
-    vi.spyOn(fs, 'statSync').mockReturnValue({
-      isFile: () => false,
-      isDirectory: () => false,
-    } as fs.Stats);
+    const stats = fs.statSync(getFixture('file-a.txt'));
+    stats.isFile = () => false;
+    stats.isDirectory = () => false;
+    vi.spyOn(fs, 'statSync').mockReturnValue(stats);
 
     const filePath = getFixture('file-a.txt');
     expect(() => globify(filePath)).toThrow();
