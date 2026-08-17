@@ -38,7 +38,7 @@ function isErrnoException(error: unknown): error is NodeJS.ErrnoException {
 
 export function loadFile(filepath: string): File {
   const stat = fs.statSync(filepath, { throwIfNoEntry: false });
-  if (stat?.isDirectory() ?? false) {
+  if (stat?.isDirectory() === true) {
     return new File({
       cwd: process.cwd(),
       base: process.cwd(),
