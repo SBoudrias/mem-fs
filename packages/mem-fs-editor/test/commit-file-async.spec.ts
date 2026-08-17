@@ -1,8 +1,17 @@
-import { describe, beforeEach, it, expect, afterEach, vi } from 'vitest';
+import {
+  describe,
+  beforeEach,
+  it,
+  expect,
+  afterEach,
+  vi,
+  assert,
+  type MockInstance,
+} from 'vitest';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { create as createMemFs } from 'mem-fs';
+import { create as createMemFs, type Store } from 'mem-fs';
 import { type MemFsEditor, type MemFsEditorFile, create } from '../src/index.ts';
 import commitFileAsync from '../src/actions/commit-file-async.ts';
 
@@ -21,10 +30,11 @@ describe('#commitFileAsync()', () => {
   let newFile: MemFsEditorFile;
 
   let memFs: MemFsEditor;
+  let addSpy: MockInstance<Store<MemFsEditorFile>['add']>;
 
   beforeEach(() => {
     const store = createMemFs<MemFsEditorFile>();
-    vi.spyOn(store, 'add');
+    addSpy = vi.spyOn(store, 'add');
 
     memFs = create(store);
     memFs.write(filename, 'foo');
@@ -35,7 +45,8 @@ describe('#commitFileAsync()', () => {
       state: 'modified',
     };
 
-    expect(store.add).toHaveBeenCalledOnce();
+    // `expect` is not allowed outside test blocks; assert the same invariant.
+    assert.strictEqual(addSpy.mock.calls.length, 1);
   });
 
   afterEach(() => {
@@ -94,7 +105,7 @@ describe('#commitFileAsync()', () => {
       ...newFile,
       stat: { mode: READ_ONLY_MODE },
     });
-    // eslint-disable-next-line no-bitwise
+    // oxlint-disable-next-line eslint/no-bitwise
     expect(fs.statSync(filenameNew).mode & 0o777).toEqual(READ_ONLY_MODE);
   });
 
@@ -109,12 +120,12 @@ describe('#commitFileAsync()', () => {
       stat: { mode: READ_ONLY_MODE },
     });
 
-    // eslint-disable-next-line no-bitwise
+    // oxlint-disable-next-line eslint/no-bitwise
     expect(fs.statSync(filenameNew).mode & 0o777).toEqual(READ_ONLY_MODE);
   });
 
   it("doesn't readd same file to store", async () => {
     await commitFileAsync(memFs.store.get(filename));
-    expect(memFs.store.add).toHaveBeenCalledOnce();
+    expect(addSpy).toHaveBeenCalledOnce();
   });
 });

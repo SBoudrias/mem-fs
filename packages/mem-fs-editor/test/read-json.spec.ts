@@ -12,8 +12,7 @@ describe('#readJSON()', () => {
   });
 
   it('read the content of a file', () => {
-    const obj = memFs.readJSON(getFixture('file.json')) as { foo: string };
-    expect(obj.foo).toBe('bar');
+    expect(memFs.readJSON(getFixture('file.json'))).toEqual({ foo: 'bar' });
   });
 
   it('calls read() with path', () => {
@@ -26,10 +25,9 @@ describe('#readJSON()', () => {
   });
 
   it('return defaults if file does not exist and defaults is provided', () => {
-    const obj = memFs.readJSON(getFixture('no-such-file.json'), {
+    expect(memFs.readJSON(getFixture('no-such-file.json'), { foo: 'bar' })).toEqual({
       foo: 'bar',
-    }) as { foo: string };
-    expect(obj.foo).toBe('bar');
+    });
   });
 
   it('throw error if file could not be parsed as JSON, even if defaults is provided', () => {

@@ -43,7 +43,7 @@ describe('#appendTpl()', () => {
   });
 
   it('throws an exception when no template data passed', () => {
-    const f = () => {
+    const f = (): void => {
       const filepath = getFixture('file-a.txt');
       const contentPath = getFixture('file-tpl.txt');
       const contents = memFs.read(contentPath);

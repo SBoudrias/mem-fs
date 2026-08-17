@@ -42,7 +42,7 @@ describe('#writeJSON()', () => {
     memFs.writeJSON(
       filepath,
       contents,
-      (key, value) => (key === 'secret' ? undefined : value),
+      (key: string, value: unknown): unknown => (key === 'secret' ? undefined : value),
       2,
     );
 
@@ -50,7 +50,7 @@ describe('#writeJSON()', () => {
       filepath,
       `${JSON.stringify(
         contents,
-        (key, value) => (key === 'secret' ? undefined : value),
+        (key: string, value: unknown): unknown => (key === 'secret' ? undefined : value),
         2,
       )}\n`,
     );
