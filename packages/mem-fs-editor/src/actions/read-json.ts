@@ -14,18 +14,17 @@ export default function readJSON(
   this: MemFsEditor,
   filepath: string,
   defaults?: unknown,
-) {
+): unknown {
   if (this.exists(filepath)) {
     try {
       const content = this.read(filepath);
-      return JSON.parse(content) as object;
+      const parsed: unknown = JSON.parse(content);
+      return parsed;
     } catch (error) {
-      throw new Error(
-        `Could not parse JSON in file: ${filepath}. Detail: ${(error as Error).message}`,
-        {
-          cause: error,
-        },
-      );
+      const detail = error instanceof Error ? error.message : String(error);
+      throw new Error(`Could not parse JSON in file: ${filepath}. Detail: ${detail}`, {
+        cause: error,
+      });
     }
   } else {
     return defaults;

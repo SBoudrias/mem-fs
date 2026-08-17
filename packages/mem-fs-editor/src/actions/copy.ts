@@ -2,10 +2,8 @@ import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
 import createDebug from 'debug';
-import { globSync, isDynamicPattern } from 'tinyglobby';
-import type { GlobOptions } from 'tinyglobby';
-import multimatch from 'multimatch';
-import type { Options as MultimatchOptions } from 'multimatch';
+import { globSync, isDynamicPattern, type GlobOptions } from 'tinyglobby';
+import multimatch, { type Options as MultimatchOptions } from 'multimatch';
 import normalize from 'normalize-path';
 import File from 'vinyl';
 import { writeInternal } from './write.ts';
@@ -73,13 +71,79 @@ type CopyOptions<TransformData = unknown, TransformOptions = unknown> = CopySing
   fromBasePath?: string;
 };
 
+const defaultFileTransform: NonNullable<CopySingleOptions['fileTransform']> = ({
+  destinationPath,
+  contents,
+}) => ({
+  path: destinationPath,
+  contents,
+});
+
+export function copySingle<
+  const TransformData = unknown,
+  const TransformOptions = unknown,
+>(
+  editor: MemFsEditor,
+  from: string,
+  to: string,
+  options: CopySingleOptions<TransformData, TransformOptions> = {},
+): void {
+  assert.ok(
+    editor.exists(from),
+    `Trying to copy from a source that does not exist: ${from}`,
+  );
+
+  debug('Copying %s to %s with %o', from, to, options);
+  const file = editor.store.get(from);
+
+  /* v8 ignore next -- @preserve should not happen */
+  if (!file.contents) {
+    throw new Error(`Cannot copy empty file ${from}`);
+  }
+
+  const {
+    fileTransform = defaultFileTransform,
+    transformOptions,
+    transformData,
+  } = options;
+  const { path: destinationPath, contents } = fileTransform({
+    destinationPath: path.resolve(to),
+    sourcePath: from,
+    contents: file.contents,
+    options: transformOptions,
+    data: transformData,
+  });
+
+  if ((options.append ?? false) && editor.store.existsInMemory(destinationPath)) {
+    editor.append(destinationPath, contents, { create: true, ...options });
+  } else if (File.isVinyl(file)) {
+    writeInternal(
+      editor.store,
+      Object.assign(file.clone({ contents: false, deep: false }), {
+        contents: Buffer.from(contents),
+        path: destinationPath,
+      }),
+    );
+  } else {
+    writeInternal(
+      editor.store,
+      new File({
+        contents: Buffer.from(contents),
+        stat: fs.statSync(file.path, { throwIfNoEntry: false }),
+        path: destinationPath,
+        history: [file.path],
+      }),
+    );
+  }
+}
+
 export function copy<const TransformData = unknown, const TransformOptions = unknown>(
   this: MemFsEditor,
   from: string | string[],
   to: string,
   options: CopyOptions<TransformData, TransformOptions> = {},
-) {
-  const { fromBasePath = getCommonPath(from), noGlob } = options;
+): void {
+  const { fromBasePath = getCommonPath(from), noGlob = false } = options;
   const hasGlobOptions = Boolean(options.globOptions);
   const hasMultimatchOptions = Boolean(options.storeMatchOptions);
   assert.ok(
@@ -132,15 +196,15 @@ export function copy<const TransformData = unknown, const TransformOptions = unk
       // The store may have a glob path and when we try to copy it will fail because not real file
       .filter((filePath) => !isDynamicPattern(filePath));
 
-    multimatch(
+    for (const filePath of multimatch(
       normalizedStoreFilePaths,
       patterns.map((p) =>
         path.isAbsolute(p) ? p : path.posix.join(normalize(fromBasePath), p),
       ),
       options.storeMatchOptions,
-    ).forEach((filePath) => {
+    )) {
       globbedFiles.push(path.resolve(filePath));
-    });
+    }
 
     const foundResolvedFrom = new Set(foundFiles.map((file) => file.resolvedFrom));
     foundFiles.push(
@@ -155,7 +219,7 @@ export function copy<const TransformData = unknown, const TransformOptions = unk
 
   // Sanity checks: Makes sure we copy at least one file.
   assert.ok(
-    options.ignoreNoMatch || foundFiles.length > 0,
+    (options.ignoreNoMatch ?? false) || foundFiles.length > 0,
     `Trying to copy from a source that does not exist: ${from.toString()}`,
   );
 
@@ -168,76 +232,9 @@ export function copy<const TransformData = unknown, const TransformOptions = unk
     );
   }
 
-  foundFiles.forEach((file) => {
+  for (const file of foundFiles) {
     const toFile = treatToAsDir ? path.join(to, file.relativeFrom) : to;
 
     copySingle(this, file.resolvedFrom, toFile, options);
-  });
-}
-
-const defaultFileTransform: NonNullable<CopySingleOptions['fileTransform']> = ({
-  destinationPath,
-  contents,
-}) => ({
-  path: destinationPath,
-  contents,
-});
-
-export function copySingle<
-  const TransformData = unknown,
-  const TransformOptions = unknown,
->(
-  editor: MemFsEditor,
-  from: string,
-  to: string,
-  options: CopySingleOptions<TransformData, TransformOptions> = {},
-) {
-  assert.ok(
-    editor.exists(from),
-    `Trying to copy from a source that does not exist: ${from}`,
-  );
-
-  debug('Copying %s to %s with %o', from, to, options);
-  const file = editor.store.get(from);
-
-  let contents: string | Buffer;
-  /* v8 ignore next -- @preserve should not happen */
-  if (!file.contents) {
-    throw new Error(`Cannot copy empty file ${from}`);
-  }
-
-  const {
-    fileTransform = defaultFileTransform,
-    transformOptions,
-    transformData,
-  } = options;
-  ({ path: to, contents } = fileTransform({
-    destinationPath: path.resolve(to),
-    sourcePath: from,
-    contents: file.contents,
-    options: transformOptions,
-    data: transformData,
-  }));
-
-  if (options.append && editor.store.existsInMemory(to)) {
-    editor.append(to, contents, { create: true, ...options });
-  } else if (File.isVinyl(file)) {
-    writeInternal(
-      editor.store,
-      Object.assign(file.clone({ contents: false, deep: false }), {
-        contents: Buffer.from(contents),
-        path: to,
-      }),
-    );
-  } else {
-    writeInternal(
-      editor.store,
-      new File({
-        contents: Buffer.from(contents),
-        stat: fs.statSync(file.path, { throwIfNoEntry: false }),
-        path: to,
-        history: [file.path],
-      }),
-    );
   }
 }

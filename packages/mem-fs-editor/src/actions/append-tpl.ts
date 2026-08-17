@@ -13,8 +13,8 @@ export default function appendTpl(
     data?: ejs.Data,
     options?: AppendTplOptions,
   ]
-) {
-  if (options?.transformOptions?.async) {
+): void {
+  if (options?.transformOptions?.async === true) {
     throw new Error('Async EJS rendering is not supported');
   }
 

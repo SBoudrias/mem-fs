@@ -21,18 +21,19 @@ function read(
   filepath: string,
   options?: { raw?: boolean; defaults?: string | Buffer | null },
 ): Buffer | string | null {
-  options ||= { raw: false };
+  const resolvedOptions = options ?? { raw: false };
   const file = this.store.get(filepath);
 
   if (file.contents === null) {
-    if ('defaults' in options) {
-      return options.defaults ?? null;
+    if ('defaults' in resolvedOptions) {
+      return resolvedOptions.defaults ?? null;
     }
 
     throw new Error(`${filepath} doesn't exist`);
   }
 
-  return options.raw ? file.contents : file.contents.toString();
+  const raw = resolvedOptions.raw ?? false;
+  return raw ? file.contents : file.contents.toString();
 }
 
 export default read;
