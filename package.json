@@ -20,8 +20,8 @@
     "tsc": "turbo tsc && tsc -p tsconfig.json"
   },
   "devDependencies": {
-    "@lerna-lite/cli": "^5.0.0",
-    "@lerna-lite/publish": "^5.0.0",
+    "@lerna-lite/cli": "^5.6.0",
+    "@lerna-lite/publish": "^5.6.0",
     "@repo/tsconfig": "workspace:*",
     "@sboudrias/package": "^1.0.1",
     "@types/node": ">=18",
