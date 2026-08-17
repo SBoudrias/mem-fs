@@ -1,11 +1,11 @@
-import path from 'path';
+import path from 'node:path';
 import normalize from 'normalize-path';
 import { minimatch } from 'minimatch';
 
 import { hasClearedState, hasState } from '../state.ts';
 import type { MemFsEditor, MemFsEditorFile } from '../index.ts';
 
-const defaultDumpFilter = (file: MemFsEditorFile) =>
+const defaultDumpFilter = (file: MemFsEditorFile): boolean =>
   hasClearedState(file) || hasState(file);
 
 export type MemFsEditorFileDump = {
@@ -14,11 +14,11 @@ export type MemFsEditorFileDump = {
   stateCleared?: string;
 };
 
-export default function <EditorFile extends MemFsEditorFile>(
+export default function dump<EditorFile extends MemFsEditorFile>(
   this: MemFsEditor<EditorFile>,
   cwd = process.cwd(),
   filter?: string | ((file: EditorFile, cwd: string) => boolean),
-) {
+): Record<string, MemFsEditorFileDump> {
   const filterFile: (file: EditorFile, cwd: string) => boolean =
     typeof filter === 'string'
       ? (file: MemFsEditorFile) => defaultDumpFilter(file) && minimatch(file.path, filter)

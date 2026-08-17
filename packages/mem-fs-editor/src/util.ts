@@ -1,5 +1,5 @@
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 import commondir from 'commondir';
 import { isDynamicPattern } from 'tinyglobby';
 import normalize from 'normalize-path';
@@ -7,20 +7,22 @@ import { isBinaryFileSync } from 'isbinaryfile';
 import textextensions from 'textextensions';
 import binaryextensions from 'binaryextensions';
 
-function notNullOrExclusion(file?: string) {
-  return file !== undefined && file !== null && file.charAt(0) !== '!';
+function notNullOrExclusion(file?: string): boolean {
+  return file != null && !file.startsWith('!');
 }
 
 export function getCommonPath(filePath: string | string[]): string {
   if (Array.isArray(filePath)) {
-    const paths = filePath.filter(notNullOrExclusion).map(getCommonPath);
+    const paths = filePath
+      .filter((file) => notNullOrExclusion(file))
+      .map((file) => getCommonPath(file));
 
     return commondir(paths);
   }
 
   const globStartIndex = filePath.indexOf('*');
   if (globStartIndex !== -1) {
-    return path.dirname(filePath.substring(0, globStartIndex + 1));
+    return path.dirname(filePath.slice(0, globStartIndex + 1));
   }
 
   if (fs.existsSync(filePath) && fs.statSync(filePath).isDirectory()) {
@@ -34,10 +36,17 @@ export function globify(inputFilePath: string): string | string[];
 export function globify(inputFilePath: string[]): string[];
 export function globify(inputFilePath: string | string[]): string | string[] {
   if (Array.isArray(inputFilePath)) {
-    return inputFilePath.reduce<string[]>(
-      (memo, pattern) => memo.concat(globify(pattern)),
-      [],
-    );
+    const globbed: string[] = [];
+    for (const pattern of inputFilePath) {
+      const result = globify(pattern);
+      if (Array.isArray(result)) {
+        globbed.push(...result);
+      } else {
+        globbed.push(result);
+      }
+    }
+
+    return globbed;
   }
 
   const filePath = normalize(inputFilePath);
@@ -64,7 +73,7 @@ export function globify(inputFilePath: string | string[]): string | string[] {
   throw new Error('Only file path or directory path are supported.');
 }
 
-export function isBinary(filePath: string, newFileContents?: Buffer) {
+export function isBinary(filePath: string, newFileContents?: Buffer): boolean {
   const extension = path.extname(filePath).replace(/^\./v, '') || path.basename(filePath);
   if (binaryextensions.includes(extension)) {
     return true;
@@ -76,7 +85,7 @@ export function isBinary(filePath: string, newFileContents?: Buffer) {
 
   return (
     (fs.existsSync(filePath) && isBinaryFileSync(filePath)) ||
-    (newFileContents && isBinaryFileSync(newFileContents))
+    (newFileContents != null && isBinaryFileSync(newFileContents))
   );
 }
 
@@ -111,6 +120,6 @@ export function resolveGlobOptions({
 }: {
   noGlob?: boolean;
   hasDynamicPattern?: boolean;
-}) {
-  return { preferFiles: noGlob || !hasDynamicPattern };
+}): { preferFiles: boolean } {
+  return { preferFiles: noGlob === true || hasDynamicPattern !== true };
 }

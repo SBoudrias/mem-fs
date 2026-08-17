@@ -1,16 +1,16 @@
-import fs from 'fs';
-import path, { resolve } from 'path';
-import { Duplex } from 'stream';
-import os from 'os';
+import fs from 'node:fs';
+import path from 'node:path';
+import { Duplex } from 'node:stream';
+import os from 'node:os';
 import { describe, beforeEach, it, expect, afterEach, vi } from 'vitest';
 import { create as createMemFs } from 'mem-fs';
-import { MemFsEditor, MemFsEditorFile, create } from '../src/index.ts';
+import { type MemFsEditor, type MemFsEditorFile, create } from '../src/index.ts';
 import { getFixture } from './fixtures.ts';
 import { isFilePending } from '../src/state.ts';
 
 describe('#commit()', () => {
   const fixtureDir = path.join(os.tmpdir(), '/mem-fs-editor-test-fixture');
-  const output = path.join(os.tmpdir(), '/mem-fs-editor-test' + String(Math.random()));
+  const output = path.join(os.tmpdir(), `/mem-fs-editor-test${String(Math.random())}`);
   const NUMBER_FILES = 100;
 
   let memFs: MemFsEditor;
@@ -20,12 +20,11 @@ describe('#commit()', () => {
     fs.mkdirSync(fixtureDir, { recursive: true });
 
     // Create a 100 files to exercise the stream high water mark
-    let i = NUMBER_FILES;
-    while (i--) {
-      fs.writeFileSync(path.join(fixtureDir, 'file-' + String(i) + '.txt'), 'foo');
+    for (let i = 0; i < NUMBER_FILES; i++) {
+      fs.writeFileSync(path.join(fixtureDir, `file-${String(i)}.txt`), 'foo');
     }
 
-    memFs.copy(fixtureDir + '/**', output);
+    memFs.copy(`${fixtureDir}/**`, output);
   });
 
   afterEach(() => {
@@ -41,13 +40,13 @@ describe('#commit()', () => {
   it('call filters and trigger callback on error', async () => {
     let called = 0;
 
-    // eslint-disable-next-line require-yield
-    const filter = Duplex.from(async function* (
+    // oxlint-disable-next-line eslint/require-yield
+    const filter = Duplex.from(async function* filter(
       generator: AsyncIterable<MemFsEditorFile>,
     ) {
-      // eslint-disable-next-line no-unreachable-loop, @typescript-eslint/no-unused-vars
+      // oxlint-disable-next-line eslint/no-unreachable-loop, typescript/no-unused-vars
       for await (const _file of generator) {
-        called++;
+        called += 1;
         throw new Error(`error ${String(called)}`);
       }
     });
@@ -59,9 +58,9 @@ describe('#commit()', () => {
     let called = 0;
 
     await memFs.commit(
-      Duplex.from(async function* (generator: AsyncIterable<MemFsEditorFile>) {
+      Duplex.from(async function* modifyFiles(generator: AsyncIterable<MemFsEditorFile>) {
         for await (const file of generator) {
-          called++;
+          called += 1;
           file.contents = Buffer.from('modified');
           yield file;
         }
@@ -77,9 +76,9 @@ describe('#commit()', () => {
 
     await memFs.commit(
       { filter: (file) => file.path.endsWith('1.txt') && isFilePending(file) },
-      Duplex.from(async function* (generator: AsyncIterable<MemFsEditorFile>) {
+      Duplex.from(async function* modifyFiles(generator: AsyncIterable<MemFsEditorFile>) {
         for await (const file of generator) {
-          called++;
+          called += 1;
           file.contents = Buffer.from('modified');
           yield file;
         }
@@ -89,7 +88,7 @@ describe('#commit()', () => {
     expect(memFs.read(path.join(output, 'file-1.txt'))).toBe('modified');
     expect(memFs.read(path.join(output, 'file-2.txt'))).not.toBe('modified');
     expect(memFs.store.get(path.join(output, 'file-1.txt')).committed).toBeTruthy();
-    expect(memFs.store.get(path.join(output, 'file-2.txt')).result).toBe(undefined);
+    expect(memFs.store.get(path.join(output, 'file-2.txt'))['result']).toBeUndefined();
   });
 
   it('write file to disk', async () => {
@@ -98,7 +97,7 @@ describe('#commit()', () => {
     expect(fs.existsSync(path.join(output, 'file-1.txt'))).toBeTruthy();
     expect(fs.existsSync(path.join(output, 'file-50.txt'))).toBeTruthy();
     expect(fs.existsSync(path.join(output, 'file-99.txt'))).toBeTruthy();
-  }, 10000);
+  }, 10_000);
 
   it('handle error when write fails', async () => {
     fs.writeFileSync(output, 'foo');
@@ -143,8 +142,8 @@ describe('#commit()', () => {
     await memFs.commit({ filter: () => true });
 
     expect(writeFile).toHaveBeenCalled();
-    expect(writeFile).not.toBeCalledWith(
-      resolve('to-delete'),
+    expect(writeFile).not.toHaveBeenCalledWith(
+      path.resolve('to-delete'),
       expect.anything(),
       expect.anything(),
     );
@@ -158,7 +157,9 @@ describe('#commit()', () => {
     memFs.store.get('to-delete');
 
     await memFs.commit(
-      Duplex.from(async function* (generator: AsyncIterable<MemFsEditorFile>) {
+      Duplex.from(async function* assertNotDeleted(
+        generator: AsyncIterable<MemFsEditorFile>,
+      ) {
         for await (const file of generator) {
           expect(file.path).not.toEqual(path.resolve('to-delete'));
           expect(file.path).not.toEqual(path.resolve('copy-to-delete'));

@@ -1,14 +1,15 @@
-import { describe, beforeEach, it, expect, vi } from 'vitest';
-import { type MemFsEditor, MemFsEditorFile, create } from '../src/index.ts';
-import { create as createMemFs } from 'mem-fs';
+import { describe, beforeEach, it, expect, vi, type MockInstance } from 'vitest';
+import { type MemFsEditor, type MemFsEditorFile, create } from '../src/index.ts';
+import { create as createMemFs, type Store } from 'mem-fs';
 import { getFixture } from './fixtures.ts';
 
 describe('#write()', () => {
   let memFs: MemFsEditor;
+  let addSpy: MockInstance<Store<MemFsEditorFile>['add']>;
 
   beforeEach(() => {
     const store = createMemFs<MemFsEditorFile>();
-    vi.spyOn(store, 'add');
+    addSpy = vi.spyOn(store, 'add');
 
     memFs = create(store);
   });
@@ -41,11 +42,11 @@ describe('#write()', () => {
     const filepath = getFixture('file-a.txt');
     const contents = 'some text';
     memFs.write(filepath, contents);
-    expect(memFs.store.add).toHaveBeenCalledTimes(1);
+    expect(addSpy).toHaveBeenCalledOnce();
     expect(memFs.read(filepath)).toBe(contents);
     expect(memFs.store.get(filepath).state).toBe('modified');
 
     memFs.write(filepath, contents);
-    expect(memFs.store.add).toHaveBeenCalledTimes(1);
+    expect(addSpy).toHaveBeenCalledOnce();
   });
 });

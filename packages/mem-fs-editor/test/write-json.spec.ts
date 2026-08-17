@@ -1,5 +1,5 @@
 import { describe, beforeEach, it, expect, vi } from 'vitest';
-import { type MemFsEditor, MemFsEditorFile, create } from '../src/index.ts';
+import { type MemFsEditor, type MemFsEditorFile, create } from '../src/index.ts';
 import { create as createMemFs } from 'mem-fs';
 import { getFixture } from './fixtures.ts';
 
@@ -15,10 +15,10 @@ describe('#writeJSON()', () => {
     const contents = { foo: 'bar' };
     vi.spyOn(memFs, 'write');
     memFs.writeJSON(filepath, contents, null, 2);
-    expect(memFs.write).toHaveBeenCalledTimes(1);
+    expect(memFs.write).toHaveBeenCalledOnce();
     expect(memFs.write).toHaveBeenCalledWith(
       filepath,
-      JSON.stringify(contents, null, 2) + '\n',
+      `${JSON.stringify(contents, null, 2)}\n`,
     );
   });
 
@@ -27,10 +27,10 @@ describe('#writeJSON()', () => {
     const contents = { foo: 'bar' };
     vi.spyOn(memFs, 'write');
     memFs.writeJSON(filepath, contents);
-    expect(memFs.write).toHaveBeenCalledTimes(1);
+    expect(memFs.write).toHaveBeenCalledOnce();
     expect(memFs.write).toHaveBeenCalledWith(
       filepath,
-      JSON.stringify(contents, null, 2) + '\n',
+      `${JSON.stringify(contents, null, 2)}\n`,
     );
   });
 
@@ -42,17 +42,17 @@ describe('#writeJSON()', () => {
     memFs.writeJSON(
       filepath,
       contents,
-      (key, value) => (key === 'secret' ? undefined : value),
+      (key: string, value: unknown): unknown => (key === 'secret' ? undefined : value),
       2,
     );
 
     expect(memFs.write).toHaveBeenCalledWith(
       filepath,
-      JSON.stringify(
+      `${JSON.stringify(
         contents,
-        (key, value) => (key === 'secret' ? undefined : value),
+        (key: string, value: unknown): unknown => (key === 'secret' ? undefined : value),
         2,
-      ) + '\n',
+      )}\n`,
     );
   });
 
@@ -60,14 +60,14 @@ describe('#writeJSON()', () => {
     const filepath = getFixture('does-not-exist.txt');
     const contents = { foo: 'bar' };
     memFs.writeJSON(filepath, contents);
-    expect(memFs.read(filepath)).toBe(JSON.stringify(contents, null, 2) + '\n');
+    expect(memFs.read(filepath)).toBe(`${JSON.stringify(contents, null, 2)}\n`);
   });
 
   it('write json object to an existing file', () => {
     const filepath = getFixture('file.json');
     const contents = { bar: 'foo' };
     memFs.writeJSON(filepath, contents);
-    expect(memFs.read(filepath)).toBe(JSON.stringify(contents, null, 2) + '\n');
+    expect(memFs.read(filepath)).toBe(`${JSON.stringify(contents, null, 2)}\n`);
   });
 
   it('calls write() with stringified JSON object', () => {
@@ -75,10 +75,10 @@ describe('#writeJSON()', () => {
     const contents = { foo: 'bar' };
     vi.spyOn(memFs, 'write');
     memFs.writeJSON(filepath, contents);
-    expect(memFs.write).toHaveBeenCalledTimes(1);
+    expect(memFs.write).toHaveBeenCalledOnce();
     expect(memFs.write).toHaveBeenCalledWith(
       filepath,
-      JSON.stringify(contents, null, 2) + '\n',
+      `${JSON.stringify(contents, null, 2)}\n`,
     );
   });
 });

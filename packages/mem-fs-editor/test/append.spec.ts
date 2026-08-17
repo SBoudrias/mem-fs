@@ -1,6 +1,6 @@
 import { describe, beforeEach, it, expect } from 'vitest';
-import { EOL } from 'os';
-import { MemFsEditor, MemFsEditorFile, create } from '../src/index.ts';
+import { EOL } from 'node:os';
+import { type MemFsEditor, type MemFsEditorFile, create } from '../src/index.ts';
 import { create as createMemFs } from 'mem-fs';
 
 describe('#append()', () => {
@@ -32,7 +32,7 @@ describe('#append()', () => {
     memFs.write('append.txt', 'a\n\n\n');
     memFs.append('append.txt', 'b');
 
-    expect(memFs.read('append.txt')).toBe('a' + EOL + 'b');
+    expect(memFs.read('append.txt')).toBe(`a${EOL}b`);
   });
 
   it('allows specifying custom separator', () => {
@@ -46,6 +46,6 @@ describe('#append()', () => {
     memFs.write('append.txt', 'a\n\n');
     memFs.append('append.txt', 'b', { trimEnd: false });
 
-    expect(memFs.read('append.txt')).toBe('a\n\n' + EOL + 'b');
+    expect(memFs.read('append.txt')).toBe(`a\n\n${EOL}b`);
   });
 });

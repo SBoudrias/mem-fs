@@ -4,7 +4,7 @@ import path from 'node:path';
 import { loadFile, loadFileAsync } from '../src/index.ts';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
-describe('loadFile', () => {
+describe('loadFile()', () => {
   let dir: string;
 
   beforeEach(() => {
@@ -18,7 +18,7 @@ describe('loadFile', () => {
   it('should return contents=null for directories', () => {
     const file = loadFile(dir);
     expect(file).toBeTruthy();
-    expect(file.stat?.isDirectory?.()).toBe(true);
+    expect(file.stat?.isDirectory()).toBe(true);
     expect(file.contents).toBeNull();
   });
 
@@ -26,7 +26,7 @@ describe('loadFile', () => {
     const filepath = path.join(dir, 'file.txt');
     writeFileSync(filepath, 'content');
     const file = loadFile(filepath);
-    expect(file.contents?.toString()).toBe('content');
+    expect(file.contents).toStrictEqual(Buffer.from('content'));
   });
 
   it('should return contents=null for non-existent files', () => {
@@ -35,7 +35,7 @@ describe('loadFile', () => {
   });
 });
 
-describe('loadFileAsync', () => {
+describe('loadFileAsync()', () => {
   let dir: string;
 
   beforeEach(() => {
@@ -49,7 +49,7 @@ describe('loadFileAsync', () => {
   it('should return contents=null for directories', async () => {
     const file = await loadFileAsync(dir);
     expect(file).toBeTruthy();
-    expect(file.stat?.isDirectory?.()).toBe(true);
+    expect(file.stat?.isDirectory()).toBe(true);
     expect(file.contents).toBeNull();
   });
 
@@ -57,7 +57,7 @@ describe('loadFileAsync', () => {
     const filepath = path.join(dir, 'file.txt');
     writeFileSync(filepath, 'content');
     const file = await loadFileAsync(filepath);
-    expect(file.contents?.toString()).toBe('content');
+    expect(file.contents).toStrictEqual(Buffer.from('content'));
   });
 
   it('should return contents=null for non-existent files', async () => {

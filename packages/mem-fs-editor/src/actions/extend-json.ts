@@ -14,7 +14,7 @@ export default function extendJSON(
     replacer?: JSONReplacer,
     space?: string | number,
   ]
-) {
+): void {
   const originalContent = this.readJSON(filepath, {});
   const newContent = extend({}, originalContent, contents);
 

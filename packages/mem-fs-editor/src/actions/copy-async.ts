@@ -1,35 +1,32 @@
-import assert from 'assert';
-import fs from 'fs';
-import fsPromises from 'fs/promises';
-import path from 'path';
+import assert from 'node:assert';
+import fs from 'node:fs';
+import fsPromises from 'node:fs/promises';
+import path from 'node:path';
 import createDebug from 'debug';
 
-import { glob, GlobOptions, isDynamicPattern } from 'tinyglobby';
-import multimatch from 'multimatch';
+import { glob, type GlobOptions, isDynamicPattern } from 'tinyglobby';
 import normalize from 'normalize-path';
 import File from 'vinyl';
 
+import multimatch, { type Options as MultimatchOptions } from 'multimatch';
+
 import type { MemFsEditor } from '../index.ts';
-import type { Options as MultimatchOptions } from 'multimatch';
 import {
   resolveFromPaths,
   getCommonPath,
-  type ResolvedFrom,
   globify,
   resolveGlobOptions,
+  type ResolvedFrom,
 } from '../util.ts';
 import { writeInternal } from './write.ts';
 
 const debug = createDebug('mem-fs-editor:copy-async');
 
-async function getOneFile(filepath: string) {
+async function getOneFile(filepath: string): Promise<string | undefined> {
   const resolved = path.resolve(filepath);
   try {
-    if ((await fsPromises.stat(resolved)).isFile()) {
-      return resolved;
-    }
-
-    return undefined;
+    const stats = await fsPromises.stat(resolved);
+    return stats.isFile() ? resolved : undefined;
   } catch {
     return undefined;
   }
@@ -93,6 +90,66 @@ type CopyAsyncOptions<
   fromBasePath?: string;
 };
 
+const defaultFileTransform: NonNullable<CopyAsyncOptions['fileTransform']> = ({
+  destinationPath,
+  contents,
+}) => ({
+  path: destinationPath,
+  contents,
+});
+
+async function copySingleAsync<
+  const TransformData = unknown,
+  const TransformOptions = unknown,
+>(
+  editor: MemFsEditor,
+  from: string,
+  to: string,
+  options: CopySingleAsyncOptions<TransformData, TransformOptions> = {},
+): Promise<void> {
+  const resolvedFrom = path.resolve(from);
+
+  debug('Copying %s to %s with %o', resolvedFrom, to, options);
+
+  const file = editor.store.get(resolvedFrom);
+  assert.ok(file.contents, `Cannot copy empty file ${resolvedFrom}`);
+
+  const {
+    fileTransform = defaultFileTransform,
+    transformOptions,
+    transformData,
+  } = options;
+  const { path: destinationPath, contents } = await fileTransform({
+    destinationPath: path.resolve(to),
+    sourcePath: resolvedFrom,
+    contents: file.contents,
+    options: transformOptions,
+    data: transformData,
+  });
+
+  if ((options.append ?? false) && editor.store.existsInMemory(destinationPath)) {
+    editor.append(destinationPath, contents, { create: true, ...options });
+  } else if (File.isVinyl(file)) {
+    writeInternal(
+      editor.store,
+      Object.assign(file.clone({ contents: false, deep: false }), {
+        contents: Buffer.from(contents),
+        path: destinationPath,
+      }),
+    );
+  } else {
+    writeInternal(
+      editor.store,
+      new File({
+        contents: Buffer.from(contents),
+        stat: fs.statSync(file.path, { throwIfNoEntry: false }),
+        path: destinationPath,
+        history: [file.path],
+      }),
+    );
+  }
+}
+
 export async function copyAsync<
   const TransformData = unknown,
   const TransformOptions = unknown,
@@ -101,21 +158,24 @@ export async function copyAsync<
   from: string | string[],
   to: string,
   options: CopyAsyncOptions<TransformData, TransformOptions> = {},
-) {
-  to = path.resolve(to);
-  const { noGlob } = options;
+): Promise<void> {
+  const resolvedTo = path.resolve(to);
+  const { noGlob = false } = options;
   const hasGlobOptions = Boolean(options.globOptions);
   const hasMultimatchOptions = Boolean(options.storeMatchOptions);
-  assert(!noGlob || !hasGlobOptions, '`noGlob` and `globOptions` are mutually exclusive');
-  assert(
+  assert.ok(
+    !noGlob || !hasGlobOptions,
+    '`noGlob` and `globOptions` are mutually exclusive',
+  );
+  assert.ok(
     !noGlob || !hasMultimatchOptions,
     '`noGlob` and `storeMatchOptions` are mutually exclusive',
   );
 
   if (typeof from === 'string') {
     const oneFile = await getOneFile(from);
-    if (oneFile) {
-      return copySingleAsync(this, oneFile, to, options);
+    if (oneFile != null) {
+      return copySingleAsync(this, oneFile, resolvedTo, options);
     }
   }
 
@@ -143,15 +203,14 @@ export async function copyAsync<
 
   let diskFiles: string[] = [];
   if (globResolved.length > 0) {
-    const patterns = globResolved.map((file) => globify(file.from)).flat();
-    diskFiles = (
-      await glob(patterns, {
-        cwd: fromBasePath,
-        ...options.globOptions,
-        absolute: true,
-        onlyFiles: true,
-      })
-    ).map((file) => path.resolve(file));
+    const patterns = globResolved.flatMap((file) => globify(file.from));
+    const globMatches = await glob(patterns, {
+      cwd: fromBasePath,
+      ...options.globOptions,
+      absolute: true,
+      onlyFiles: true,
+    });
+    diskFiles = globMatches.map((file) => path.resolve(file));
 
     const normalizedStoreFilePaths = this.store
       .all()
@@ -162,34 +221,34 @@ export async function copyAsync<
       // The store may have a glob path and when we try to copy it will fail because not real file
       .filter((filePath) => !isDynamicPattern(filePath));
 
-    multimatch(
+    for (const filePath of multimatch(
       normalizedStoreFilePaths,
       patterns.map((p) =>
         path.isAbsolute(p) ? p : path.posix.join(normalize(fromBasePath), p),
       ),
       options.storeMatchOptions,
-    ).forEach((filePath) => {
+    )) {
       storeFiles.push(path.resolve(filePath));
-    });
+    }
   }
 
   // Sanity checks: Makes sure we copy at least one file.
-  assert(
-    options.ignoreNoMatch || diskFiles.length > 0 || storeFiles.length > 0,
-    'Trying to copy from a source that does not exist: ' + String(from),
+  assert.ok(
+    (options.ignoreNoMatch ?? false) || diskFiles.length > 0 || storeFiles.length > 0,
+    `Trying to copy from a source that does not exist: ${String(from)}`,
   );
 
   // If `from` is an array, or if it contains any dynamic patterns, or if it doesn't exist, `to` must be a directory.
   const treatToAsDir = Array.isArray(from) || !preferFiles || globResolved.length > 0;
-  let generateDestination: (filepath: string) => string = () => to;
+  let generateDestination: (filepath: string) => string = () => resolvedTo;
   if (treatToAsDir) {
-    assert(
-      !this.exists(to) || fs.statSync(to).isDirectory(),
+    assert.ok(
+      !this.exists(resolvedTo) || fs.statSync(resolvedTo).isDirectory(),
       'When copying multiple files, provide a directory as destination',
     );
 
     generateDestination = (filepath) =>
-      path.join(to, path.relative(fromBasePath, filepath));
+      path.join(resolvedTo, path.relative(fromBasePath, filepath));
   }
 
   await Promise.all([
@@ -200,66 +259,4 @@ export async function copyAsync<
       copySingleAsync(this, file, generateDestination(file), options),
     ),
   ]);
-}
-
-const defaultFileTransform: NonNullable<CopyAsyncOptions['fileTransform']> = ({
-  destinationPath,
-  contents,
-}) => ({
-  path: destinationPath,
-  contents,
-});
-
-async function copySingleAsync<
-  const TransformData = unknown,
-  const TransformOptions = unknown,
->(
-  editor: MemFsEditor,
-  from: string,
-  to: string,
-  options: CopySingleAsyncOptions<TransformData, TransformOptions> = {},
-) {
-  from = path.resolve(from);
-
-  debug('Copying %s to %s with %o', from, to, options);
-
-  const file = editor.store.get(from);
-  assert(file.contents, `Cannot copy empty file ${from}`);
-
-  const {
-    fileTransform = defaultFileTransform,
-    transformOptions,
-    transformData,
-  } = options;
-  const transformPromise = fileTransform({
-    destinationPath: path.resolve(to),
-    sourcePath: from,
-    contents: file.contents,
-    options: transformOptions,
-    data: transformData,
-  });
-  let contents: string | Buffer;
-  ({ path: to, contents } = await transformPromise);
-
-  if (options.append && editor.store.existsInMemory(to)) {
-    editor.append(to, contents, { create: true, ...options });
-  } else if (File.isVinyl(file)) {
-    writeInternal(
-      editor.store,
-      Object.assign(file.clone({ contents: false, deep: false }), {
-        contents: Buffer.from(contents),
-        path: to,
-      }),
-    );
-  } else {
-    writeInternal(
-      editor.store,
-      new File({
-        contents: Buffer.from(contents),
-        stat: fs.statSync(file.path, { throwIfNoEntry: false }),
-        path: to,
-        history: [file.path],
-      }),
-    );
-  }
 }

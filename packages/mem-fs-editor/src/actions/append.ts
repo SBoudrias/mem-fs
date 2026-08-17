@@ -1,4 +1,4 @@
-import { EOL } from 'os';
+import { EOL } from 'node:os';
 import type { MemFsEditor } from '../index.ts';
 
 export default function append(
@@ -6,7 +6,7 @@ export default function append(
   to: string,
   contents: string | Buffer,
   options?: { create?: boolean; trimEnd?: boolean; separator?: string },
-) {
+): void {
   const opts = {
     create: false,
     trimEnd: true,
