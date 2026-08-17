@@ -121,5 +121,5 @@ export function resolveGlobOptions({
   noGlob?: boolean;
   hasDynamicPattern?: boolean;
 }): { preferFiles: boolean } {
-  return { preferFiles: (noGlob ?? false) || !(hasDynamicPattern ?? false) };
+  return { preferFiles: noGlob === true || hasDynamicPattern !== true };
 }

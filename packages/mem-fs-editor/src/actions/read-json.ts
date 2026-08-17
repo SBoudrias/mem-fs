@@ -21,6 +21,7 @@ export default function readJSON(
       const parsed: unknown = JSON.parse(content);
       return parsed;
     } catch (error) {
+      /* v8 ignore next -- defensive: JSON.parse only throws SyntaxError */
       const detail = error instanceof Error ? error.message : String(error);
       throw new Error(`Could not parse JSON in file: ${filepath}. Detail: ${detail}`, {
         cause: error,
