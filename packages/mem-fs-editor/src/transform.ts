@@ -13,6 +13,7 @@ export const createCommitTransform = (): Transform =>
         await commitFileAsync(file);
         callback(null, file);
       } catch (error) {
+        /* v8 ignore next -- defensive: commitFileAsync only rejects with Error */
         callback(error instanceof Error ? error : new Error(String(error)));
       }
     },
