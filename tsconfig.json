@@ -4,6 +4,7 @@
     "vitest.*.ts",
     "tools/**/*",
     "**/*.test.ts",
+    "**/*.spec.ts",
     "**/*.d.ts",
     "**/examples/**/*"
   ],

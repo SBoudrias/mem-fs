@@ -1,5 +1,5 @@
 import { describe, beforeEach, it, expect } from 'vitest';
-import { type MemFsEditor, MemFsEditorFile, create } from '../src/index.ts';
+import { type MemFsEditor, type MemFsEditorFile, create } from '../src/index.ts';
 import { create as createMemFs } from 'mem-fs';
 import { getFixture } from './fixtures.ts';
 

@@ -1,8 +1,8 @@
 import { describe, beforeEach, it, expect, vi, afterEach } from 'vitest';
-import fs from 'fs/promises';
-import os from 'os';
-import path from 'path';
-import { MemFsEditor, MemFsEditorFile, create } from '../src/index.ts';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import { type MemFsEditor, type MemFsEditorFile, create } from '../src/index.ts';
 import { create as createMemFs } from 'mem-fs';
 import { getFixture } from './fixtures.ts';
 
@@ -168,43 +168,43 @@ for (const method of ['copy', 'copyAsync'] as const) {
 
     it('copy by directory', async () => {
       await memFs[method](getFixture(), outputDir);
-      expect(memFs.read(path.join(outputDir, 'file-a.txt'))).toBe('foo' + os.EOL);
+      expect(memFs.read(path.join(outputDir, 'file-a.txt'))).toBe(`foo${os.EOL}`);
       expect(memFs.read(path.join(outputDir, '/nested/file.txt'))).toBe(
-        'nested' + os.EOL,
+        `nested${os.EOL}`,
       );
     });
 
     it('copy by globbing', async () => {
       await memFs[method](getFixture('**'), outputDir);
-      expect(memFs.read(path.join(outputDir, 'file-a.txt'))).toBe('foo' + os.EOL);
+      expect(memFs.read(path.join(outputDir, 'file-a.txt'))).toBe(`foo${os.EOL}`);
       expect(memFs.read(path.join(outputDir, '/nested/file.txt'))).toBe(
-        'nested' + os.EOL,
+        `nested${os.EOL}`,
       );
     });
 
     it('copy by mixed file and glob sources', async () => {
       await memFs[method]([getFixture('file-a.txt'), getFixture('file-tpl*')], outputDir);
 
-      expect(memFs.read(path.join(outputDir, 'file-a.txt'))).toBe('foo' + os.EOL);
+      expect(memFs.read(path.join(outputDir, 'file-a.txt'))).toBe(`foo${os.EOL}`);
       expect(memFs.read(path.join(outputDir, 'file-tpl.txt'))).toBe(
-        '<%= name %>' + os.EOL,
+        `<%= name %>${os.EOL}`,
       );
     });
 
     it('copy mixed file and directory sources', async () => {
       await memFs[method]([getFixture('file-a.txt'), getFixture('nested')], outputDir);
 
-      expect(memFs.read(path.join(outputDir, 'file-a.txt'))).toBe('foo' + os.EOL);
+      expect(memFs.read(path.join(outputDir, 'file-a.txt'))).toBe(`foo${os.EOL}`);
       expect(memFs.read(path.join(outputDir, '/nested/file.txt'))).toBe(
-        'nested' + os.EOL,
+        `nested${os.EOL}`,
       );
     });
 
     it('copy by globbing multiple patterns', async () => {
       await memFs[method]([getFixture('**'), '!**/*tpl*'], outputDir);
-      expect(memFs.read(path.join(outputDir, 'file-a.txt'))).toBe('foo' + os.EOL);
+      expect(memFs.read(path.join(outputDir, 'file-a.txt'))).toBe(`foo${os.EOL}`);
       expect(memFs.read(path.join(outputDir, '/nested/file.txt'))).toBe(
-        'nested' + os.EOL,
+        `nested${os.EOL}`,
       );
       expect(() => {
         memFs.read(path.join(outputDir, 'file-tpl.txt'));
@@ -221,17 +221,17 @@ for (const method of ['copy', 'copyAsync'] as const) {
         );
       await memFs[method](getFixture('**'), outputDir, { fileTransform });
       expect(fileTransform).toHaveBeenCalledTimes(13); // 10 total files under 'fixtures', not counting folders
-      expect(memFs.read(path.join(outputDir, 'file-a.txt'))).toBe('foo' + os.EOL);
+      expect(memFs.read(path.join(outputDir, 'file-a.txt'))).toBe(`foo${os.EOL}`);
       expect(memFs.read(path.join(outputDir, '/nested/file.txt'))).toBe(
-        'nested' + os.EOL,
+        `nested${os.EOL}`,
       );
     });
 
     it('accepts directory name with "."', async () => {
       await memFs[method](getFixture('**'), outputDir);
-      expect(memFs.read(path.join(outputDir, 'file-a.txt'))).toBe('foo' + os.EOL);
+      expect(memFs.read(path.join(outputDir, 'file-a.txt'))).toBe(`foo${os.EOL}`);
       expect(memFs.read(path.join(outputDir, '/nested/file.txt'))).toBe(
-        'nested' + os.EOL,
+        `nested${os.EOL}`,
       );
     });
 
@@ -250,7 +250,7 @@ for (const method of ['copy', 'copyAsync'] as const) {
     it('preserve permissions', async () => {
       const filename = path.join(outputDir, 'perm.txt');
       const copyname = path.join(outputDir, 'copy-perm.txt');
-      await fs.writeFile(filename, 'foo', { mode: 0o755, encoding: 'utf-8' });
+      await fs.writeFile(filename, 'foo', { mode: 0o755, encoding: 'utf8' });
 
       await memFs[method](filename, copyname);
 
@@ -265,7 +265,7 @@ for (const method of ['copy', 'copyAsync'] as const) {
       await memFs[method](getFixture('file-(specia!-char$).txt'), newPath, {
         noGlob: true,
       });
-      expect(memFs.read(newPath)).toBe('special' + os.EOL);
+      expect(memFs.read(newPath)).toBe(`special${os.EOL}`);
     });
 
     it('copy glob like file when noGlob', async () => {
@@ -273,7 +273,7 @@ for (const method of ['copy', 'copyAsync'] as const) {
       await memFs[method](getFixture('[file].txt'), newPath, {
         noGlob: true,
       });
-      expect(memFs.read(newPath)).toBe('foo' + os.EOL);
+      expect(memFs.read(newPath)).toBe(`foo${os.EOL}`);
     });
 
     it('accepts fromBasePath', async () => {
@@ -281,9 +281,9 @@ for (const method of ['copy', 'copyAsync'] as const) {
         fromBasePath: path.join(import.meta.dirname, 'fixtures'),
         noGlob: true,
       });
-      expect(memFs.read(path.join(outputDir, '/file-a.txt'))).toBe('foo' + os.EOL);
+      expect(memFs.read(path.join(outputDir, '/file-a.txt'))).toBe(`foo${os.EOL}`);
       expect(memFs.read(path.join(outputDir, '/nested/file.txt'))).toBe(
-        'nested' + os.EOL,
+        `nested${os.EOL}`,
       );
     });
 
@@ -295,9 +295,9 @@ for (const method of ['copy', 'copyAsync'] as const) {
           noGlob: true,
         },
       );
-      expect(memFs.read(path.join(outputDir, '/file-a.txt'))).toBe('foo' + os.EOL);
+      expect(memFs.read(path.join(outputDir, '/file-a.txt'))).toBe(`foo${os.EOL}`);
       expect(memFs.read(path.join(outputDir, '/nested/file.txt'))).toBe(
-        'nested' + os.EOL,
+        `nested${os.EOL}`,
       );
     });
 

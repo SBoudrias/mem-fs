@@ -1,5 +1,5 @@
 import { describe, beforeEach, it, expect, vi } from 'vitest';
-import { type MemFsEditor, MemFsEditorFile, create } from '../src/index.ts';
+import { type MemFsEditor, type MemFsEditorFile, create } from '../src/index.ts';
 import { create as createMemFs } from 'mem-fs';
 import { getFixture } from './fixtures.ts';
 
@@ -18,10 +18,10 @@ describe('#extendJSON()', () => {
     vi.spyOn(memFs, 'readJSON').mockReturnValue({ a: 'a', b: 'b' });
 
     memFs.extendJSON(filepath, contents);
-    expect(memFs.write).toHaveBeenCalledTimes(1);
+    expect(memFs.write).toHaveBeenCalledOnce();
     expect(memFs.write).toHaveBeenCalledWith(
       filepath,
-      JSON.stringify({ a: 'a', b: 2 }, null, 2) + '\n',
+      `${JSON.stringify({ a: 'a', b: 2 }, null, 2)}\n`,
     );
   });
 
@@ -30,10 +30,10 @@ describe('#extendJSON()', () => {
     const contents = { foo: 'bar' };
     vi.spyOn(memFs, 'write');
     memFs.extendJSON(filepath, contents);
-    expect(memFs.write).toHaveBeenCalledTimes(1);
+    expect(memFs.write).toHaveBeenCalledOnce();
     expect(memFs.write).toHaveBeenCalledWith(
       filepath,
-      JSON.stringify({ foo: 'bar' }, null, 2) + '\n',
+      `${JSON.stringify({ foo: 'bar' }, null, 2)}\n`,
     );
   });
 
@@ -42,10 +42,10 @@ describe('#extendJSON()', () => {
     const contents = { foo: 'bar' };
     vi.spyOn(memFs, 'write');
     memFs.extendJSON(filepath, contents, ['\n'], 4);
-    expect(memFs.write).toHaveBeenCalledTimes(1);
+    expect(memFs.write).toHaveBeenCalledOnce();
     expect(memFs.write).toHaveBeenCalledWith(
       filepath,
-      JSON.stringify(contents, ['\n'], 4) + '\n',
+      `${JSON.stringify(contents, ['\n'], 4)}\n`,
     );
   });
 });

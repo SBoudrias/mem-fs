@@ -1,4 +1,5 @@
-import { isFileTransform, type FileTransform, type PipelineOptions } from 'mem-fs';
+import { isFileTransform } from 'mem-fs';
+import type { FileTransform, PipelineOptions } from 'mem-fs';
 import type { MemFsEditor, MemFsEditorFile } from '../index.ts';
 
 import { createCommitTransform } from '../transform.ts';

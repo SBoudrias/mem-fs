@@ -1,23 +1,18 @@
-import assert from 'assert';
-import fs from 'fs';
-import fsPromises from 'fs/promises';
-import path from 'path';
+import assert from 'node:assert';
+import fs from 'node:fs';
+import fsPromises from 'node:fs/promises';
+import path from 'node:path';
 import createDebug from 'debug';
 
-import { glob, GlobOptions, isDynamicPattern } from 'tinyglobby';
+import { glob, type GlobOptions, isDynamicPattern } from 'tinyglobby';
 import multimatch from 'multimatch';
 import normalize from 'normalize-path';
 import File from 'vinyl';
 
 import type { MemFsEditor } from '../index.ts';
 import type { Options as MultimatchOptions } from 'multimatch';
-import {
-  resolveFromPaths,
-  getCommonPath,
-  type ResolvedFrom,
-  globify,
-  resolveGlobOptions,
-} from '../util.ts';
+import { resolveFromPaths, getCommonPath, globify, resolveGlobOptions } from '../util.ts';
+import type { ResolvedFrom } from '../util.ts';
 import { writeInternal } from './write.ts';
 
 const debug = createDebug('mem-fs-editor:copy-async');
@@ -29,9 +24,9 @@ async function getOneFile(filepath: string) {
       return resolved;
     }
 
-    return undefined;
+    return;
   } catch {
-    return undefined;
+    return;
   }
 }
 
@@ -106,8 +101,11 @@ export async function copyAsync<
   const { noGlob } = options;
   const hasGlobOptions = Boolean(options.globOptions);
   const hasMultimatchOptions = Boolean(options.storeMatchOptions);
-  assert(!noGlob || !hasGlobOptions, '`noGlob` and `globOptions` are mutually exclusive');
-  assert(
+  assert.ok(
+    !noGlob || !hasGlobOptions,
+    '`noGlob` and `globOptions` are mutually exclusive',
+  );
+  assert.ok(
     !noGlob || !hasMultimatchOptions,
     '`noGlob` and `storeMatchOptions` are mutually exclusive',
   );
@@ -143,7 +141,7 @@ export async function copyAsync<
 
   let diskFiles: string[] = [];
   if (globResolved.length > 0) {
-    const patterns = globResolved.map((file) => globify(file.from)).flat();
+    const patterns = globResolved.flatMap((file) => globify(file.from));
     diskFiles = (
       await glob(patterns, {
         cwd: fromBasePath,
@@ -174,16 +172,16 @@ export async function copyAsync<
   }
 
   // Sanity checks: Makes sure we copy at least one file.
-  assert(
+  assert.ok(
     options.ignoreNoMatch || diskFiles.length > 0 || storeFiles.length > 0,
-    'Trying to copy from a source that does not exist: ' + String(from),
+    `Trying to copy from a source that does not exist: ${String(from)}`,
   );
 
   // If `from` is an array, or if it contains any dynamic patterns, or if it doesn't exist, `to` must be a directory.
   const treatToAsDir = Array.isArray(from) || !preferFiles || globResolved.length > 0;
   let generateDestination: (filepath: string) => string = () => to;
   if (treatToAsDir) {
-    assert(
+    assert.ok(
       !this.exists(to) || fs.statSync(to).isDirectory(),
       'When copying multiple files, provide a directory as destination',
     );
@@ -224,7 +222,7 @@ async function copySingleAsync<
   debug('Copying %s to %s with %o', from, to, options);
 
   const file = editor.store.get(from);
-  assert(file.contents, `Cannot copy empty file ${from}`);
+  assert.ok(file.contents, `Cannot copy empty file ${from}`);
 
   const {
     fileTransform = defaultFileTransform,

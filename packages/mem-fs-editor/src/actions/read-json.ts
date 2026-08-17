@@ -21,10 +21,7 @@ export default function readJSON(
       return JSON.parse(content) as object;
     } catch (error) {
       throw new Error(
-        'Could not parse JSON in file: ' +
-          filepath +
-          '. Detail: ' +
-          (error as Error).message,
+        `Could not parse JSON in file: ${filepath}. Detail: ${(error as Error).message}`,
         {
           cause: error,
         },

@@ -1,19 +1,19 @@
 import { describe, beforeEach, it, expect, vi } from 'vitest';
-import os from 'os';
-import path, { resolve } from 'path';
-import { type MemFsEditor, MemFsEditorFile, create } from '../src/index.ts';
+import os from 'node:os';
+import path, { resolve } from 'node:path';
+import { type MemFsEditor, type MemFsEditorFile, create } from '../src/index.ts';
 import { create as createMemFs } from 'mem-fs';
 import { getFixture } from './fixtures.ts';
 import multimatch from 'multimatch';
 import { glob, globSync } from 'tinyglobby';
 import normalizePath from 'normalize-path';
 
-vi.mock('multimatch', async (importOriginal) => {
+vi.mock(import('multimatch'), async (importOriginal) => {
   const actual = await importOriginal<typeof import('multimatch')>();
   return { ...actual, default: vi.fn().mockImplementation(actual.default) };
 });
 
-vi.mock('tinyglobby', async (importOriginal) => {
+vi.mock(import('tinyglobby'), async (importOriginal) => {
   const actual = await importOriginal<typeof import('tinyglobby')>();
   return {
     ...actual,
@@ -34,7 +34,7 @@ for (const method of ['copyTpl', 'copyTplAsync'] as const) {
       it("doesn't accept async EJS rendering", () => {
         expect(() => {
           memFs.copyTpl('', '', {}, { transformOptions: { async: true } });
-        }).toThrowError('Async EJS rendering is not supported');
+        }).toThrow('Async EJS rendering is not supported');
       });
     }
 
@@ -49,23 +49,23 @@ for (const method of ['copyTpl', 'copyTplAsync'] as const) {
       const filepath = getFixture('file-tpl.txt');
       const newPath = '/new/path/file.txt';
       await memFs[method](filepath, newPath, { name: 'new content' });
-      expect(memFs.read(newPath)).toBe('new content' + os.EOL);
+      expect(memFs.read(newPath)).toBe(`new content${os.EOL}`);
     });
 
     it('fallback to memory file', async () => {
       const filepath = getFixture('file-tpl.txt');
-      await memFs.copyAsync(filepath, filepath + '.mem');
+      await memFs.copyAsync(filepath, `${filepath}.mem`);
       const newPath = '/new/path/file.txt';
-      await memFs[method](filepath + '.mem', newPath, { name: 'new content' });
-      expect(memFs.read(newPath)).toBe('new content' + os.EOL);
+      await memFs[method](`${filepath}.mem`, newPath, { name: 'new content' });
+      expect(memFs.read(newPath)).toBe(`new content${os.EOL}`);
     });
 
     it('fallback to memory file with array', async () => {
       const filepath = getFixture('file-tpl.txt');
-      await memFs.copyAsync(filepath, filepath + '.mem');
+      await memFs.copyAsync(filepath, `${filepath}.mem`);
       const newPath = '/new/path/';
-      await memFs[method]([filepath + '.mem'], newPath, { name: 'new content' });
-      expect(memFs.read(`${newPath}file-tpl.txt.mem`)).toBe('new content' + os.EOL);
+      await memFs[method]([`${filepath}.mem`], newPath, { name: 'new content' });
+      expect(memFs.read(`${newPath}file-tpl.txt.mem`)).toBe(`new content${os.EOL}`);
     });
 
     it('allow setting custom template delimiters', async () => {
@@ -79,23 +79,23 @@ for (const method of ['copyTpl', 'copyTplAsync'] as const) {
           transformOptions: { delimiter: '?' },
         },
       );
-      expect(memFs.read(newPath)).toBe('mustache' + os.EOL);
+      expect(memFs.read(newPath)).toBe(`mustache${os.EOL}`);
     });
 
     it('allow including partials', async () => {
       const filepath = getFixture('file-tpl-include.txt');
       const newPath = '/new/path/file.txt';
       await memFs[method](filepath, newPath);
-      expect(memFs.read(newPath)).toBe('partial' + os.EOL + os.EOL);
+      expect(memFs.read(newPath)).toBe(`partial${os.EOL}${os.EOL}`);
     });
 
     it('allow appending files', async () => {
       const filepath = getFixture('file-tpl.txt');
       const newPath = '/new/path/file-append.txt';
       await memFs[method](filepath, newPath, { name: 'new content' });
-      expect(memFs.read(newPath)).toBe('new content' + os.EOL);
+      expect(memFs.read(newPath)).toBe(`new content${os.EOL}`);
       await memFs[method](filepath, newPath, { name: 'new content' }, { append: true });
-      expect(memFs.read(newPath)).toBe('new content' + os.EOL + 'new content' + os.EOL);
+      expect(memFs.read(newPath)).toBe(`new content${os.EOL}new content${os.EOL}`);
     });
 
     it('should pass globOptions to glob', async () => {
@@ -123,9 +123,9 @@ for (const method of ['copyTpl', 'copyTplAsync'] as const) {
       if (method === 'copyTpl') {
         expect(() => {
           memFs[method](from, dest, data, options);
-        }).toThrowError(expectedError);
+        }).toThrow(expectedError);
       } else {
-        await expect(memFs[method](from, dest, data, options)).rejects.toThrowError(
+        await expect(memFs[method](from, dest, data, options)).rejects.toThrow(
           expectedError,
         );
       }
@@ -157,9 +157,9 @@ for (const method of ['copyTpl', 'copyTplAsync'] as const) {
       if (method === 'copyTpl') {
         expect(() => {
           memFs[method](from, dest, data, options);
-        }).toThrowError(expectedError);
+        }).toThrow(expectedError);
       } else {
-        await expect(memFs[method](from, dest, data, options)).rejects.toThrowError(
+        await expect(memFs[method](from, dest, data, options)).rejects.toThrow(
           expectedError,
         );
       }
@@ -200,7 +200,7 @@ for (const method of ['copyTpl', 'copyTplAsync'] as const) {
           transformOptions: { context: { a } },
         },
       );
-      expect(memFs.read(newPath)).toBe('new content new content' + os.EOL);
+      expect(memFs.read(newPath)).toBe(`new content new content${os.EOL}`);
     });
 
     it('removes ejs extension when globbing', async () => {
@@ -216,7 +216,7 @@ for (const method of ['copyTpl', 'copyTplAsync'] as const) {
       await memFs[method](filepath, newPath, { name: 'bar' });
       // Check that both path and content were processed
       expect(memFs.exists('/new/bar/file.txt')).toBeTruthy();
-      expect(memFs.read('/new/bar/file.txt')).toBe('bar' + os.EOL);
+      expect(memFs.read('/new/bar/file.txt')).toBe(`bar${os.EOL}`);
     });
 
     it('keeps template path in file history', async () => {

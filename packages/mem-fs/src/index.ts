@@ -1,12 +1,12 @@
-import { EventEmitter } from 'events';
-import path from 'path';
+import { EventEmitter } from 'node:events';
+import path from 'node:path';
 import { vinylFile, vinylFileSync } from 'vinyl-file';
 import File from 'vinyl';
-import { type PipelineTransform, Readable, Transform } from 'stream';
-import { pipeline } from 'stream/promises';
+import { type PipelineTransform, Readable, Transform } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 import fs from 'node:fs';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// oxlint-disable-next-line typescript/no-explicit-any
 export type FileTransform<File> = PipelineTransform<PipelineTransform<any, File>, File>;
 
 export type StreamOptions<StoreFile extends { path: string } = File> = {
@@ -36,7 +36,7 @@ function isErrnoException(error: unknown): error is NodeJS.ErrnoException {
 
 export function loadFile(filepath: string): File {
   const stat = fs.statSync(filepath, { throwIfNoEntry: false });
-  if (stat?.isDirectory?.()) {
+  if (stat?.isDirectory() ?? false) {
     return new File({
       cwd: process.cwd(),
       base: process.cwd(),
@@ -61,7 +61,7 @@ export function loadFile(filepath: string): File {
 export async function loadFileAsync(filepath: string): Promise<File> {
   try {
     const stat = await fs.promises.stat(filepath);
-    if (stat?.isDirectory?.()) {
+    if (stat.isDirectory()) {
       return new File({
         cwd: process.cwd(),
         base: process.cwd(),
@@ -96,73 +96,82 @@ export async function loadFileAsync(filepath: string): Promise<File> {
  * that every `File` satisfies, we assert the loaded file into the store's
  * file type.
  */
+// oxlint-disable-next-line typescript/no-unnecessary-type-parameters
 function toStoreFile<StoreFile extends { path: string }>(file: File): StoreFile {
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion
   return file as File & StoreFile;
 }
 
+// EventEmitter is part of the public API (`store.on('change', ...)`)
+// oxlint-disable-next-line unicorn/prefer-event-target
 export class Store<StoreFile extends { path: string } = File> extends EventEmitter {
   private store = new Map<string, StoreFile>();
-  private asyncStore = new Map<string, Promise<StoreFile>>();
+  private readonly asyncStore = new Map<string, Promise<StoreFile>>();
 
-  get(filepath: string): StoreFile {
-    filepath = path.resolve(filepath);
-    const cached = this.store.get(filepath);
+  public get(filepath: string): StoreFile {
+    const resolvedPath = path.resolve(filepath);
+    const cached = this.store.get(resolvedPath);
     if (cached) {
       return cached;
     }
 
-    const file = toStoreFile<StoreFile>(loadFile(filepath));
-    this.store.set(filepath, file);
+    const file = toStoreFile<StoreFile>(loadFile(resolvedPath));
+    this.store.set(resolvedPath, file);
     return file;
   }
 
-  getAsync(filepath: string): Promise<StoreFile> {
-    filepath = path.resolve(filepath);
-    const cached = this.store.get(filepath);
+  public getAsync(filepath: string): Promise<StoreFile> {
+    const resolvedPath = path.resolve(filepath);
+    const cached = this.store.get(resolvedPath);
     if (cached) {
       return Promise.resolve(cached);
     }
 
-    const pending = this.asyncStore.get(filepath);
+    const pending = this.asyncStore.get(resolvedPath);
     if (pending) {
       return pending;
     }
 
-    const loading = loadFileAsync(filepath)
-      .then((file) => {
+    const loading = (async () => {
+      try {
+        const file = await loadFileAsync(resolvedPath);
         const storeFile = toStoreFile<StoreFile>(file);
-        this.store.set(filepath, storeFile);
+        this.store.set(resolvedPath, storeFile);
         return storeFile;
-      })
-      .finally(() => this.asyncStore.delete(filepath));
-    this.asyncStore.set(filepath, loading);
+      } finally {
+        this.asyncStore.delete(resolvedPath);
+      }
+    })();
+    this.asyncStore.set(resolvedPath, loading);
     return loading;
   }
 
-  existsInMemory(filepath: string): boolean {
-    filepath = path.resolve(filepath);
-    return this.store.has(filepath);
+  public existsInMemory(filepath: string): boolean {
+    return this.store.has(path.resolve(filepath));
   }
 
-  add(file: StoreFile): this {
+  public add(file: StoreFile): this {
     this.store.set(file.path, file);
     this.emit('change', file.path);
     return this;
   }
 
-  each(onEach: (file: StoreFile) => void): this {
-    this.store.forEach((file) => {
+  public each(onEach: (file: StoreFile) => void): this {
+    for (const file of this.store.values()) {
       onEach(file);
-    });
+    }
+
     return this;
   }
 
-  all(): StoreFile[] {
-    return Array.from(this.store.values());
+  public all(): StoreFile[] {
+    return [...this.store.values()];
   }
 
-  stream({ filter = () => true }: StreamOptions<StoreFile> = {}): Readable {
-    function* iterablefilter(iterable: IterableIterator<StoreFile>) {
+  public stream({ filter = () => true }: StreamOptions<StoreFile> = {}): Readable {
+    function* iterablefilter(
+      iterable: IterableIterator<StoreFile>,
+    ): Generator<StoreFile, void, undefined> {
       for (const item of iterable) {
         if (filter(item)) {
           yield item;
@@ -173,7 +182,7 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
     return Readable.from(iterablefilter(this.store.values()));
   }
 
-  async pipeline(
+  public async pipeline(
     options?: PipelineOptions<StoreFile> | FileTransform<StoreFile>,
     ...transforms: FileTransform<StoreFile>[]
   ): Promise<void> {
@@ -183,40 +192,45 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
       | undefined;
     let refresh = true;
 
+    let pipelineTransforms = transforms;
     if (isFileTransform<StoreFile>(options)) {
-      transforms = [options, ...transforms];
+      pipelineTransforms = [options, ...transforms];
     } else if (options) {
-      filter = options.filter;
+      ({ filter } = options);
       if (options.refresh !== undefined) {
-        refresh = options.refresh;
+        ({ refresh } = options);
       }
 
       if (options.resolveConflict !== undefined) {
-        resolveConflict = options.resolveConflict;
+        ({ resolveConflict } = options);
       } else if (options.allowOverride !== undefined) {
         resolveConflict = (_current, newFile) => newFile;
       }
     }
 
     const newStore = refresh ? new Map<string, StoreFile>() : undefined;
-    const fileFilter = filter ?? (transforms.length === 0 ? () => false : () => true);
+    const fileFilter =
+      filter ?? (pipelineTransforms.length === 0 ? () => false : () => true);
 
     const addFile = newStore
       ? (file: StoreFile) => {
           const currentFile = newStore.get(file.path);
+          let resolvedFile = file;
           if (currentFile) {
             if (!resolveConflict) {
               throw new Error(`Duplicated file ${file.path} was emitted.`);
             }
 
-            file = resolveConflict(currentFile, file);
+            resolvedFile = resolveConflict(currentFile, file);
           }
 
-          newStore.set(file.path, file);
+          newStore.set(resolvedFile.path, resolvedFile);
         }
       : undefined;
 
-    function* iterablefilter(iterable: IterableIterator<StoreFile>) {
+    function* iterablefilter(
+      iterable: IterableIterator<StoreFile>,
+    ): Generator<StoreFile, void, undefined> {
       for (const item of iterable) {
         if (fileFilter(item)) {
           yield item;
@@ -226,19 +240,25 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
       }
     }
 
+    // The `any` assertions bridge the loose pipeline() overloads with our
+    // object-mode generic stream types.
+    // oxlint-disable typescript/no-explicit-any, typescript/no-unsafe-argument, typescript/no-unsafe-assignment, typescript/no-unsafe-type-assertion
+    const source = Readable.from(iterablefilter(this.store.values())) as any;
     await pipeline(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      Readable.from(iterablefilter(this.store.values())) as any,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ...(transforms as any),
+      source,
+      ...(pipelineTransforms as any),
       new Transform({
         objectMode: true,
+        // Node Transform streams are callback-based by design
+        // oxlint-disable-next-line promise/prefer-await-to-callbacks
         transform(file: StoreFile, _encoding, callback) {
           addFile?.(file);
+          // oxlint-disable-next-line promise/prefer-await-to-callbacks
           callback(null);
         },
       }),
     );
+    // oxlint-enable typescript/no-explicit-any, typescript/no-unsafe-argument, typescript/no-unsafe-assignment, typescript/no-unsafe-type-assertion
 
     if (newStore) {
       const oldStore = this.store;

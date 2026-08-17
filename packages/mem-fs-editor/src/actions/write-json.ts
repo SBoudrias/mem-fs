@@ -22,5 +22,5 @@ export default function writeJSON(
       ? JSON.stringify(contents, replacer, indentation)
       : JSON.stringify(contents, replacer, indentation);
 
-  return this.write(filepath, json + '\n');
+  return this.write(filepath, `${json}\n`);
 }

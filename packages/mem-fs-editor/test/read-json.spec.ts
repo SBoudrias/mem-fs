@@ -1,5 +1,5 @@
 import { describe, beforeEach, it, expect, vi } from 'vitest';
-import { type MemFsEditor, MemFsEditorFile, create } from '../src/index.ts';
+import { type MemFsEditor, type MemFsEditorFile, create } from '../src/index.ts';
 import { create as createMemFs } from 'mem-fs';
 import escape from 'escape-regexp';
 import { getFixture } from './fixtures.ts';
@@ -21,7 +21,7 @@ describe('#readJSON()', () => {
 
     const file = getFixture('file.json');
     memFs.readJSON(file);
-    expect(memFs.read).toHaveBeenCalledTimes(1);
+    expect(memFs.read).toHaveBeenCalledOnce();
     expect(memFs.read).toHaveBeenCalledWith(file);
   });
 

@@ -1,7 +1,7 @@
 import { describe, beforeEach, it, expect } from 'vitest';
-import os from 'os';
-import path from 'path';
-import { type MemFsEditor, MemFsEditorFile, create } from '../src/index.ts';
+import os from 'node:os';
+import path from 'node:path';
+import { type MemFsEditor, type MemFsEditorFile, create } from '../src/index.ts';
 import { create as createMemFs } from 'mem-fs';
 import { getFixture } from './fixtures.ts';
 
@@ -56,7 +56,7 @@ describe('#move()', () => {
     memFs.write(filepath, contents);
     memFs.move(fromdir, dirpath);
 
-    expect(memFs.read(path.join(dirpath, 'file.txt'))).toBe('nested' + os.EOL);
+    expect(memFs.read(path.join(dirpath, 'file.txt'))).toBe(`nested${os.EOL}`);
     expect(memFs.read(filepath)).toBe(contents);
     expect(() => {
       memFs.read(path.join(fromdir, 'file.txt'));

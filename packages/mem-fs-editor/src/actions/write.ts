@@ -1,6 +1,6 @@
-import assert from 'assert';
-import { resolve } from 'path';
-import fs from 'fs';
+import assert from 'node:assert';
+import { resolve } from 'node:path';
+import type fs from 'node:fs';
 import { isFileStateModified, setModifiedFileState } from '../state.ts';
 import File from 'vinyl';
 import type { MemFsEditor, MemFsEditorFile } from '../index.ts';
@@ -47,7 +47,7 @@ export default function write(
   contents: string | Buffer,
   stat?: fs.Stats,
 ) {
-  assert(
+  assert.ok(
     typeof contents === 'string' || Buffer.isBuffer(contents),
     'Expected `contents` to be a String or a Buffer',
   );

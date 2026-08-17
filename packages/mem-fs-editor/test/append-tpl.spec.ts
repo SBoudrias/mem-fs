@@ -1,6 +1,6 @@
 import { describe, beforeEach, it, expect } from 'vitest';
-import os from 'os';
-import { type MemFsEditor, MemFsEditorFile, create } from '../src/index.ts';
+import os from 'node:os';
+import { type MemFsEditor, type MemFsEditorFile, create } from '../src/index.ts';
 import { create as createMemFs } from 'mem-fs';
 import { getFixture } from './fixtures.ts';
 
@@ -14,7 +14,7 @@ describe('#appendTpl()', () => {
   it("doesn't accept async EJS rendering", () => {
     expect(() => {
       memFs.appendTpl('', '', {}, { transformOptions: { async: true } });
-    }).toThrowError('Async EJS rendering is not supported');
+    }).toThrow('Async EJS rendering is not supported');
   });
 
   it('appends to file and processes contents as underscore template', () => {
@@ -25,7 +25,7 @@ describe('#appendTpl()', () => {
     memFs.appendTpl(filepath, contents, {
       name: 'bar',
     });
-    expect(memFs.read(filepath)).toBe(originalContent + 'bar' + os.EOL);
+    expect(memFs.read(filepath)).toBe(`${originalContent}bar${os.EOL}`);
   });
 
   it('allows setting custom template delimiters', () => {
@@ -39,7 +39,7 @@ describe('#appendTpl()', () => {
       { name: 'bar' },
       { transformOptions: { delimiter: '?' } },
     );
-    expect(memFs.read(filepath)).toBe(originalContent + 'bar' + os.EOL);
+    expect(memFs.read(filepath)).toBe(`${originalContent}bar${os.EOL}`);
   });
 
   it('throws an exception when no template data passed', () => {
