@@ -3,16 +3,6 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { loadFile, loadFileAsync } from '../src/index.ts';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import type File from 'vinyl';
-
-// Files loaded from disk always have Buffer contents; narrow before reading.
-const contentsString = (file: File): string => {
-  if (!Buffer.isBuffer(file.contents)) {
-    throw new TypeError('Expected file contents to be a Buffer');
-  }
-
-  return file.contents.toString();
-};
 
 describe('loadFile()', () => {
   let dir: string;
@@ -36,7 +26,7 @@ describe('loadFile()', () => {
     const filepath = path.join(dir, 'file.txt');
     writeFileSync(filepath, 'content');
     const file = loadFile(filepath);
-    expect(contentsString(file)).toBe('content');
+    expect(file.contents).toStrictEqual(Buffer.from('content'));
   });
 
   it('should return contents=null for non-existent files', () => {
@@ -67,7 +57,7 @@ describe('loadFileAsync()', () => {
     const filepath = path.join(dir, 'file.txt');
     writeFileSync(filepath, 'content');
     const file = await loadFileAsync(filepath);
-    expect(contentsString(file)).toBe('content');
+    expect(file.contents).toStrictEqual(Buffer.from('content'));
   });
 
   it('should return contents=null for non-existent files', async () => {
