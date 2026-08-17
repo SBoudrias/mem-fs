@@ -17,9 +17,9 @@ updates:
           - 'vitest'
       linting:
         patterns:
-          - '@typescript-eslint/*'
-          - 'eslint-*'
-          - 'eslint'
+          - 'oxlint'
+          - 'oxlint-tsgolint'
+          - 'oxfmt'
           - 'prettier'
           - 'typescript'
 

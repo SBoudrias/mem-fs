@@ -1,12 +1,12 @@
 import { describe, beforeEach, it, expect, vi } from 'vitest';
-import assert from 'assert';
+import assert from 'node:assert';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import path, { resolve } from 'path';
+import path, { resolve } from 'node:path';
 import File from 'vinyl';
 
-import { create, Store } from '../src/index.ts';
-import { Duplex } from 'stream';
+import { create, type Store } from '../src/index.ts';
+import { Duplex } from 'node:stream';
 
 const fixtureA = 'fixtures/file-a.txt';
 const fixtureB = 'fixtures/file-b.txt';
@@ -249,7 +249,7 @@ describe('mem-fs', () => {
       await store.pipeline();
 
       expect(store.existsInMemory(fixtureB)).toBeFalsy();
-      expect(store.existsInMemory(fixtureB + '.renamed')).toBeTruthy();
+      expect(store.existsInMemory(`${fixtureB}.renamed`)).toBeTruthy();
     });
 
     it('creates a new store with filtered files', async () => {
@@ -320,13 +320,13 @@ describe('mem-fs', () => {
         }),
       );
 
-      expect(listener).toBeCalled();
+      expect(listener).toHaveBeenCalled();
       // Emits event for files only in oldStore
-      expect(listener).toBeCalledWith(resolve(fixtureB));
+      expect(listener).toHaveBeenCalledWith(resolve(fixtureB));
       // Emits event for files only in newStore
-      expect(listener).toBeCalledWith(resolve(fixtureB + '.renamed'));
+      expect(listener).toHaveBeenCalledWith(resolve(`${fixtureB}.renamed`));
       // Emits event for changed file
-      expect(listener).toBeCalledWith(resolve(fixtureA));
+      expect(listener).toHaveBeenCalledWith(resolve(fixtureA));
     });
 
     describe('allowOverride option', () => {
@@ -335,7 +335,7 @@ describe('mem-fs', () => {
         const fileB = store.get(fixtureB);
         fileB.path = fileA.path;
 
-        await expect(store.pipeline()).rejects.toThrowError(/^Duplicated file/v);
+        await expect(store.pipeline()).rejects.toThrow(/^Duplicated file/v);
       });
 
       it('overrides duplicated files', async () => {

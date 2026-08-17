@@ -1,7 +1,7 @@
 import { describe, beforeEach, it, expect, afterEach, vi } from 'vitest';
-import fs from 'fs';
-import os from 'os';
-import path from 'path';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { create as createMemFs } from 'mem-fs';
 import { type MemFsEditor, type MemFsEditorFile, create } from '../src/index.ts';
 import commitFileAsync from '../src/actions/commit-file-async.ts';
@@ -14,7 +14,7 @@ const READ_WRITE_MODE = 0o666;
 const READ_ONLY_MODE = 0o444;
 
 describe('#commitFileAsync()', () => {
-  const outputRoot = path.join(os.tmpdir(), 'mem-fs-editor-test' + String(Math.random()));
+  const outputRoot = path.join(os.tmpdir(), `mem-fs-editor-test${String(Math.random())}`);
   const outputDir = path.join(outputRoot, 'output');
   const filename = path.join(outputDir, 'file.txt');
   const filenameNew = path.join(outputDir, 'file-new.txt');
@@ -35,7 +35,7 @@ describe('#commitFileAsync()', () => {
       state: 'modified',
     };
 
-    expect(store.add).toHaveBeenCalledTimes(1);
+    expect(store.add).toHaveBeenCalledOnce();
   });
 
   afterEach(() => {
@@ -44,7 +44,7 @@ describe('#commitFileAsync()', () => {
 
   it('writes a modified file to disk', async () => {
     await commitFileAsync(memFs.store.get(filename));
-    expect(fs.readFileSync(filename).toString()).toEqual('foo');
+    expect(fs.readFileSync(filename).toString()).toBe('foo');
   });
 
   it('throws if file contents is null', async () => {
@@ -115,6 +115,6 @@ describe('#commitFileAsync()', () => {
 
   it("doesn't readd same file to store", async () => {
     await commitFileAsync(memFs.store.get(filename));
-    expect(memFs.store.add).toHaveBeenCalledTimes(1);
+    expect(memFs.store.add).toHaveBeenCalledOnce();
   });
 });

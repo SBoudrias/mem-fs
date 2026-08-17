@@ -4,7 +4,7 @@ import path from 'node:path';
 import { loadFile, loadFileAsync } from '../src/index.ts';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
-describe('loadFile', () => {
+describe(loadFile, () => {
   let dir: string;
 
   beforeEach(() => {
@@ -35,7 +35,7 @@ describe('loadFile', () => {
   });
 });
 
-describe('loadFileAsync', () => {
+describe(loadFileAsync, () => {
   let dir: string;
 
   beforeEach(() => {

@@ -23,7 +23,7 @@ jobs:
       - run: yarn package lint --check
       - run: yarn oxfmt --check
       - run: yarn tsc
-      - run: yarn eslint .
+      - run: yarn oxlint
 
   Unit-Tests:
     runs-on: ubuntu-latest

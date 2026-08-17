@@ -1,5 +1,5 @@
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 import commondir from 'commondir';
 import { isDynamicPattern } from 'tinyglobby';
 import normalize from 'normalize-path';
@@ -8,7 +8,7 @@ import textextensions from 'textextensions';
 import binaryextensions from 'binaryextensions';
 
 function notNullOrExclusion(file?: string) {
-  return file !== undefined && file !== null && file.charAt(0) !== '!';
+  return file !== undefined && file !== null && !file.startsWith('!');
 }
 
 export function getCommonPath(filePath: string | string[]): string {

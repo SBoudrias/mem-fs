@@ -1,4 +1,4 @@
-import { EOL } from 'os';
+import { EOL } from 'node:os';
 import type { MemFsEditor } from '../index.ts';
 
 export default function append(

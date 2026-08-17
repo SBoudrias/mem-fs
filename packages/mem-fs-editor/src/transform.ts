@@ -1,4 +1,4 @@
-import { Transform } from 'stream';
+import { Transform } from 'node:stream';
 import commitFileAsync from './actions/commit-file-async.ts';
 import type { MemFsEditorFile } from './index.ts';
 

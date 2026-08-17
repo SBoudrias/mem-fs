@@ -1,5 +1,6 @@
-import path from 'path';
-import { globSync, type GlobOptions } from 'tinyglobby';
+import path from 'node:path';
+import { globSync } from 'tinyglobby';
+import type { GlobOptions } from 'tinyglobby';
 import multimatch from 'multimatch';
 import normalize from 'normalize-path';
 
