@@ -22,6 +22,7 @@ describe('#extendJSON()', () => {
     expect(memFs.write).toHaveBeenCalledWith(
       filepath,
       `${JSON.stringify({ a: 'a', b: 2 }, null, 2)}\n`,
+      undefined,
     );
   });
 
@@ -34,6 +35,7 @@ describe('#extendJSON()', () => {
     expect(memFs.write).toHaveBeenCalledWith(
       filepath,
       `${JSON.stringify({ foo: 'bar' }, null, 2)}\n`,
+      undefined,
     );
   });
 
@@ -46,6 +48,7 @@ describe('#extendJSON()', () => {
     expect(memFs.write).toHaveBeenCalledWith(
       filepath,
       `${JSON.stringify(contents, ['\n'], 4)}\n`,
+      undefined,
     );
   });
 });

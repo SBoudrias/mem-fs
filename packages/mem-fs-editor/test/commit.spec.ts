@@ -44,7 +44,7 @@ describe('#commit()', () => {
     const filter = Duplex.from(async function* filter(
       generator: AsyncIterable<MemFsEditorFile>,
     ) {
-      // oxlint-disable-next-line eslint/no-unreachable-loop, typescript/no-unused-vars
+      // oxlint-disable-next-line eslint/no-unreachable-loop
       for await (const _file of generator) {
         called += 1;
         throw new Error(`error ${String(called)}`);
@@ -69,6 +69,28 @@ describe('#commit()', () => {
 
     expect(called).toBe(100);
     expect(memFs.read(path.join(output, 'file-1.txt'))).toBe('modified');
+  });
+
+  it('commit transform can read editorMetadata', async () => {
+    const metadataFile = path.join(output, 'file-metadata.txt');
+    memFs.write(metadataFile, 'original', { metadata: { uppercase: true } });
+    memFs.write(path.join(output, 'file-plain.txt'), 'original');
+
+    await memFs.commit(
+      Duplex.from(async function* uppercaseMetadataFiles(
+        generator: AsyncIterable<MemFsEditorFile>,
+      ) {
+        for await (const file of generator) {
+          if (file.editorMetadata?.['uppercase'] === true) {
+            file.contents = Buffer.from(file.contents?.toString().toUpperCase() ?? '');
+          }
+          yield file;
+        }
+      }),
+    );
+
+    expect(memFs.read(metadataFile)).toBe('ORIGINAL');
+    expect(memFs.read(path.join(output, 'file-plain.txt'))).toBe('original');
   });
 
   it('call filters, update memory model and commit selected files', async () => {

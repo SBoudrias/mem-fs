@@ -130,11 +130,13 @@ async function copySingleAsync<
   if ((options.append ?? false) && editor.store.existsInMemory(destinationPath)) {
     editor.append(destinationPath, contents, { create: true, ...options });
   } else if (File.isVinyl(file)) {
+    const clonedFile = file.clone({ contents: false, deep: false });
     writeInternal(
       editor.store,
-      Object.assign(file.clone({ contents: false, deep: false }), {
+      Object.assign(clonedFile, {
         contents: Buffer.from(contents),
         path: destinationPath,
+        editorMetadata: options.metadata ?? clonedFile.editorMetadata,
       }),
     );
   } else {
@@ -145,6 +147,7 @@ async function copySingleAsync<
         stat: fs.statSync(file.path, { throwIfNoEntry: false }),
         path: destinationPath,
         history: [file.path],
+        editorMetadata: options.metadata,
       }),
     );
   }
