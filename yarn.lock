@@ -2914,7 +2914,25 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"mem-fs@npm:^5.0.0, mem-fs@workspace:packages/mem-fs":
+"mem-fs@npm:^5.0.0":
+  version: 5.0.0
+  resolution: "mem-fs@npm:5.0.0"
+  dependencies:
+    vinyl: "npm:^3.0.1"
+    vinyl-file: "npm:^5.0.0"
+  peerDependencies:
+    "@types/node": ">=18"
+    "@types/vinyl": ^2.0.12
+  peerDependenciesMeta:
+    "@types/node":
+      optional: true
+    "@types/vinyl":
+      optional: true
+  checksum: 10/7fbb597c8f775815a00e2658cb3015213dc750b80f8ce27b5678891eab0ed24160936cc286b257648536f4e2901e20b14472808b0bb44c8c168d7b2053c93700
+  languageName: node
+  linkType: hard
+
+"mem-fs@workspace:packages/mem-fs":
   version: 0.0.0-use.local
   resolution: "mem-fs@workspace:packages/mem-fs"
   dependencies:
