@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 import { getCommonPath, globify, isBinary } from '../src/util.ts';
 import normalize from 'normalize-path';
 import { getFixture } from './fixtures.ts';
@@ -66,10 +66,10 @@ describe('globify()', () => {
   });
 
   it('throws if target path is neither a file or a directory', () => {
-    vi.spyOn(fs, 'statSync').mockReturnValue({
-      isFile: () => false,
-      isDirectory: () => false,
-    } as fs.Stats);
+    const stats = fs.statSync(getFixture('file-a.txt'));
+    stats.isFile = () => false;
+    stats.isDirectory = () => false;
+    vi.spyOn(fs, 'statSync').mockReturnValue(stats);
 
     const filePath = getFixture('file-a.txt');
     expect(() => globify(filePath)).toThrow();
@@ -80,9 +80,11 @@ describe('isBinary()', () => {
   it('returns false for Dockerfile file', () => {
     expect(isBinary('../Dockerfile')).toBe(false);
   });
+
   it('returns false for txt file', () => {
     expect(isBinary('../foo.txt')).toBe(false);
   });
+
   it('returns true for ico file', () => {
     expect(isBinary('../foo.ico')).toBe(true);
   });

@@ -26,9 +26,11 @@ export function copyTpl(
 ): void {
   /* v8 ignore next -- @preserve */
   if (compatOptions) {
-    // Backward compatibility.
+    // Backward compatibility: in compat mode `options` carries the EJS
+    // options at runtime despite its declared type.
     options = {
       ...compatOptions,
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion
       transformOptions: options as ejs.Options,
     };
   }
@@ -36,22 +38,28 @@ export function copyTpl(
   this.copy(from, to, {
     ...options,
     transformData: data,
-    fileTransform({ destinationPath, sourcePath, contents, data, options }) {
-      if (options?.async) {
+    fileTransform({
+      destinationPath,
+      sourcePath,
+      contents,
+      data: templateData,
+      options: templateOptions,
+    }) {
+      if (templateOptions?.async === true) {
         throw new Error('Async EJS rendering is not supported');
       }
 
-      const renderedPath = ejs.render(destinationPath, data, {
-        ...options,
+      const renderedPath = ejs.render(destinationPath, templateData, {
+        ...templateOptions,
         cache: false, // Cache uses filename as key, which is not provided in this case.
         async: false,
       });
       const processedContent = isBinary(sourcePath, contents)
         ? contents
-        : ejs.render(contents.toString(), data, {
+        : ejs.render(contents.toString(), templateData, {
             // Setting filename by default allow including partials.
             filename: sourcePath,
-            ...options,
+            ...templateOptions,
             async: false,
           });
       // If the destination path ends with .ejs, the output is expected to be an .ejs file.

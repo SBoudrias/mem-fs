@@ -1,8 +1,5 @@
 import type { Store } from 'mem-fs';
 import type Vinyl from 'vinyl';
-
-export type { PipelineOptions, FileTransform } from 'mem-fs';
-
 import read from './actions/read.ts';
 import readJSON from './actions/read-json.ts';
 import exists from './actions/exists.ts';
@@ -20,6 +17,8 @@ import move from './actions/move.ts';
 import commit from './actions/commit.ts';
 import dump from './actions/dump.ts';
 
+export type { PipelineOptions, FileTransform } from 'mem-fs';
+
 export interface MemFsEditorFile {
   path: string;
   stat?: { mode?: number } | null;
@@ -35,7 +34,7 @@ export interface MemFsEditorFile {
 export interface VinylMemFsEditorFile
   extends Omit<Vinyl, 'contents' | 'stat'>, MemFsEditorFile {}
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
+// oxlint-disable-next-line typescript/no-unsafe-declaration-merging
 export class MemFsEditor<EditorFile extends MemFsEditorFile = VinylMemFsEditorFile> {
   store: Store<EditorFile>;
 
@@ -80,6 +79,6 @@ MemFsEditor.prototype.move = move;
 MemFsEditor.prototype.commit = commit;
 MemFsEditor.prototype.dump = dump;
 
-export function create<T extends MemFsEditorFile>(store: Store<T>) {
+export function create<T extends MemFsEditorFile>(store: Store<T>): MemFsEditor<T> {
   return new MemFsEditor<T>(store);
 }

@@ -1,5 +1,5 @@
 import { describe, beforeEach, it, expect, vi } from 'vitest';
-import { type MemFsEditor, MemFsEditorFile, create } from '../src/index.ts';
+import { type MemFsEditor, type MemFsEditorFile, create } from '../src/index.ts';
 import { create as createMemFs } from 'mem-fs';
 import escape from 'escape-regexp';
 import { getFixture } from './fixtures.ts';
@@ -12,8 +12,7 @@ describe('#readJSON()', () => {
   });
 
   it('read the content of a file', () => {
-    const obj = memFs.readJSON(getFixture('file.json')) as { foo: string };
-    expect(obj.foo).toBe('bar');
+    expect(memFs.readJSON(getFixture('file.json'))).toEqual({ foo: 'bar' });
   });
 
   it('calls read() with path', () => {
@@ -21,15 +20,14 @@ describe('#readJSON()', () => {
 
     const file = getFixture('file.json');
     memFs.readJSON(file);
-    expect(memFs.read).toHaveBeenCalledTimes(1);
+    expect(memFs.read).toHaveBeenCalledOnce();
     expect(memFs.read).toHaveBeenCalledWith(file);
   });
 
   it('return defaults if file does not exist and defaults is provided', () => {
-    const obj = memFs.readJSON(getFixture('no-such-file.json'), {
+    expect(memFs.readJSON(getFixture('no-such-file.json'), { foo: 'bar' })).toEqual({
       foo: 'bar',
-    }) as { foo: string };
-    expect(obj.foo).toBe('bar');
+    });
   });
 
   it('throw error if file could not be parsed as JSON, even if defaults is provided', () => {

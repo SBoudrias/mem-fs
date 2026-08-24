@@ -1,6 +1,6 @@
 import { describe, beforeEach, it, expect } from 'vitest';
-import path from 'path';
-import { type MemFsEditor, MemFsEditorFile, create } from '../src/index.ts';
+import path from 'node:path';
+import { type MemFsEditor, type MemFsEditorFile, create } from '../src/index.ts';
 import { create as createMemFs } from 'mem-fs';
 import { getFixture } from './fixtures.ts';
 
@@ -19,7 +19,7 @@ describe('#delete()', () => {
     }).toThrow();
 
     const file = memFs.store.get(filepath);
-    expect(file.contents).toBe(null);
+    expect(file.contents).toBeNull();
     expect(file.state).toBe('deleted');
   });
 
@@ -38,7 +38,7 @@ describe('#delete()', () => {
     memFs.delete(dirpath);
 
     const file = memFs.store.get(nestedFile);
-    expect(file.contents).toBe(null);
+    expect(file.contents).toBeNull();
     expect(file.state).toBe('deleted');
   });
 
@@ -47,7 +47,7 @@ describe('#delete()', () => {
     memFs.delete('foo');
 
     const file = memFs.store.get('foo');
-    expect(file.contents).toBe(null);
+    expect(file.contents).toBeNull();
     expect(file.state).toBe('deleted');
   });
 
@@ -56,7 +56,7 @@ describe('#delete()', () => {
     memFs.delete('/test/bar/');
 
     const file = memFs.store.get('/test/bar/foo.txt');
-    expect(file.contents).toBe(null);
+    expect(file.contents).toBeNull();
     expect(file.state).toBe('deleted');
   });
 
@@ -65,7 +65,7 @@ describe('#delete()', () => {
     memFs.delete(path.resolve('bar'));
 
     const file = memFs.store.get('bar');
-    expect(file.contents).toBe(null);
+    expect(file.contents).toBeNull();
     expect(file.state).toBe('deleted');
   });
 });

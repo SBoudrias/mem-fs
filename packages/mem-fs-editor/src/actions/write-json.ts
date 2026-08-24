@@ -15,12 +15,12 @@ export default function writeJSON(
     replacer?: JSONReplacer,
     space?: string | number,
   ]
-) {
+): string {
   const indentation = space ?? DEFAULT_INDENTATION;
   const json =
     typeof replacer === 'function'
       ? JSON.stringify(contents, replacer, indentation)
       : JSON.stringify(contents, replacer, indentation);
 
-  return this.write(filepath, json + '\n');
+  return this.write(filepath, `${json}\n`);
 }

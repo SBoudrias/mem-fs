@@ -1,6 +1,4 @@
-import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
+import path from 'node:path';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
-export const getFixture = (...fixture) => join(__dirname, 'fixtures', ...fixture);
+export const getFixture = (...fixture: string[]): string =>
+  path.join(import.meta.dirname, 'fixtures', ...fixture);

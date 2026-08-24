@@ -1,9 +1,9 @@
 import { mkdtemp, rm } from 'node:fs/promises';
 import { describe, beforeEach, afterEach, it, expect } from 'vitest';
-import os from 'os';
-import path from 'path';
+import os from 'node:os';
+import path from 'node:path';
 import { create as createMemFs } from 'mem-fs';
-import { type MemFsEditor, MemFsEditorFile, create } from '../src/index.ts';
+import { type MemFsEditor, type MemFsEditorFile, create } from '../src/index.ts';
 
 describe('#dump()', () => {
   let testDir: string;

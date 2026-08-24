@@ -9,14 +9,17 @@ async function commit<EditorFile extends MemFsEditorFile>(
   options?: PipelineOptions<EditorFile> | FileTransform<EditorFile>,
   ...transforms: FileTransform<EditorFile>[]
 ): Promise<void> {
+  let pipelineOptions: PipelineOptions<EditorFile> | undefined;
+  let pipelineTransforms = transforms;
   if (isFileTransform<EditorFile>(options)) {
-    transforms = [options, ...transforms];
-    options = undefined;
+    pipelineTransforms = [options, ...transforms];
+  } else {
+    pipelineOptions = options;
   }
 
   await this.store.pipeline(
-    { filter: isFilePending, ...options },
-    ...transforms,
+    { filter: isFilePending, ...pipelineOptions },
+    ...pipelineTransforms,
     createCommitTransform(),
   );
 }
