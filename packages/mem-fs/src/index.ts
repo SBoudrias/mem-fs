@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events';
 import path from 'node:path';
-import { vinylFile, vinylFileSync } from 'vinyl-file';
+import { vinylFileSync } from 'vinyl-file';
 import File from 'vinyl';
 import { type PipelineTransform, Readable, Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
@@ -32,10 +32,6 @@ export function isFileTransform<StoreFile extends { path: string } = File>(
   );
 }
 
-function isErrnoException(error: unknown): error is NodeJS.ErrnoException {
-  return error instanceof Error && 'code' in error;
-}
-
 export function loadFile(filepath: string): File {
   const stat = fs.statSync(filepath, { throwIfNoEntry: false });
   if (stat?.isDirectory() === true) {
@@ -60,43 +56,10 @@ export function loadFile(filepath: string): File {
   }
 }
 
-export async function loadFileAsync(filepath: string): Promise<File> {
-  try {
-    const stat = await fs.promises.stat(filepath);
-    if (stat.isDirectory()) {
-      return new File({
-        cwd: process.cwd(),
-        base: process.cwd(),
-        path: filepath,
-        stat,
-        contents: null,
-      });
-    }
-  } catch (error) {
-    if (!isErrnoException(error) || error.code !== 'ENOENT') {
-      // Preserve behavior of loadFile (sync) for non-ENOENT errors.
-      throw error;
-    }
-    // File does not exist; any other error will be handled later.
-  }
-
-  try {
-    return await vinylFile(filepath);
-  } catch {
-    return new File({
-      cwd: process.cwd(),
-      base: process.cwd(),
-      path: filepath,
-      contents: null,
-    });
-  }
-}
-
 // EventEmitter is part of the public API (`store.on('change', ...)`)
 // oxlint-disable-next-line unicorn/prefer-event-target
 export class Store<StoreFile extends { path: string } = File> extends EventEmitter {
   private store = new Map<string, StoreFile>();
-  private readonly asyncStore = new Map<string, Promise<StoreFile>>();
 
   get(filepath: string): StoreFile {
     const resolvedPath = path.resolve(filepath);
@@ -110,34 +73,6 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
     const file = loadFile(resolvedPath) as File & StoreFile;
     this.store.set(resolvedPath, file);
     return file;
-  }
-
-  getAsync(filepath: string): Promise<StoreFile> {
-    const resolvedPath = path.resolve(filepath);
-    const cached = this.store.get(resolvedPath);
-    if (cached) {
-      return Promise.resolve(cached);
-    }
-
-    const pending = this.asyncStore.get(resolvedPath);
-    if (pending) {
-      return pending;
-    }
-
-    const loading = (async () => {
-      try {
-        const file = await loadFileAsync(resolvedPath);
-        // Disk loads produce vinyl File; StoreFile is a structural { path: string } type.
-        // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-        const storeFile = file as File & StoreFile;
-        this.store.set(resolvedPath, storeFile);
-        return storeFile;
-      } finally {
-        this.asyncStore.delete(resolvedPath);
-      }
-    })();
-    this.asyncStore.set(resolvedPath, loading);
-    return loading;
   }
 
   existsInMemory(filepath: string): boolean {

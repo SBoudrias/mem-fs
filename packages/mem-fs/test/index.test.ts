@@ -1,7 +1,5 @@
 import { describe, beforeEach, it, expect, vi } from 'vitest';
 import assert from 'node:assert';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
 import path from 'node:path';
 import File from 'vinyl';
 
@@ -32,40 +30,9 @@ describe('mem-fs', () => {
     store = create();
   });
 
-  it('forwards errors from loadFileAsync', async () => {
-    const dir = mkdtempSync(path.join(tmpdir(), 'mfe-'));
-    const filepath = path.join(dir, 'file.txt');
-    writeFileSync(filepath, 'content');
-    await expect(store.getAsync(path.join(filepath, 'nested'))).rejects.toThrow();
-    rmSync(dir, { recursive: true, force: true });
-  });
-
-  it('deduplicates concurrent async loads', async () => {
-    const [file1, file2] = await Promise.all([
-      store.getAsync(fixtureA),
-      store.getAsync(fixtureA),
-    ]);
-    expect(file1).toBe(file2);
-  });
-
-  it('async call should load from memory if file is already loaded', async () => {
-    const syncFile = store.get(fixtureA);
-    const asyncFile = await store.getAsync(fixtureA);
-    expect(asyncFile).toBe(syncFile);
-  });
-
   describe('#get() / #add() / #existsInMemory()', () => {
     it('load file from disk', () => {
       const file = store.get(fixtureA);
-      assert.deepEqual(file.contents, Buffer.from('foo\n'));
-      assert.equal(file.cwd, process.cwd());
-      assert.equal(file.base, process.cwd());
-      assert.equal(file.relative, fixtureA);
-      assert.equal(file.path, path.resolve(fixtureA));
-    });
-
-    it('load file from disk (async)', async () => {
-      const file = await store.getAsync(fixtureA);
       assert.deepEqual(file.contents, Buffer.from('foo\n'));
       assert.equal(file.cwd, process.cwd());
       assert.equal(file.base, process.cwd());
@@ -80,12 +47,6 @@ describe('mem-fs', () => {
 
     it('file should exist in memory after getting it', () => {
       store.get(fixtureA);
-      const exists = store.existsInMemory(fixtureA);
-      assert.equal(exists, true);
-    });
-
-    it('file should exist in memory after getting it (async)', async () => {
-      await store.getAsync(fixtureA);
       const exists = store.existsInMemory(fixtureA);
       assert.equal(exists, true);
     });
@@ -106,15 +67,6 @@ describe('mem-fs', () => {
 
     it('returns empty file reference if file does not exist', () => {
       const file = store.get(absentFile);
-      assert.equal(file.contents, null);
-      assert.equal(file.cwd, process.cwd());
-      assert.equal(file.base, process.cwd());
-      assert.equal(file.relative, absentFile);
-      assert.equal(file.path, path.resolve(absentFile));
-    });
-
-    it('returns empty file reference if file does not exist (async)', async () => {
-      const file = await store.getAsync(absentFile);
       assert.equal(file.contents, null);
       assert.equal(file.cwd, process.cwd());
       assert.equal(file.base, process.cwd());
