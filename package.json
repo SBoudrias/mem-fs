@@ -28,7 +28,7 @@
     "@types/vinyl": "^2.0.12",
     "@vitest/coverage-v8": "^4.0.18",
     "nano-staged": "^1.0.2",
-    "oxfmt": "^0.62.0",
+    "oxfmt": "^0.63.0",
     "oxlint": "^1.78.0",
     "oxlint-tsgolint": "^7.0.2001",
     "turbo": "^2.9.4",
