@@ -3,6 +3,7 @@ import { defineConfig } from 'oxlint';
 export default defineConfig({
   options: {
     typeAware: true,
+    reportUnusedDisableDirectives: 'error',
   },
   plugins: ['typescript', 'unicorn', 'oxc', 'import', 'promise', 'node', 'vitest'],
   categories: {

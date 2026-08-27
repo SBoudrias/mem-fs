@@ -1,4 +1,5 @@
 import type { MemFsEditor } from '../index.ts';
+import type { WriteOptions } from './write.ts';
 
 const DEFAULT_INDENTATION = 2;
 
@@ -9,11 +10,12 @@ type JSONReplacer =
 
 export default function writeJSON(
   this: MemFsEditor,
-  ...[filepath, contents, replacer, space]: [
+  ...[filepath, contents, replacer, space, options]: [
     filepath: string,
     contents: unknown,
     replacer?: JSONReplacer,
     space?: string | number,
+    options?: WriteOptions,
   ]
 ): string {
   const indentation = space ?? DEFAULT_INDENTATION;
@@ -22,5 +24,5 @@ export default function writeJSON(
       ? JSON.stringify(contents, replacer, indentation)
       : JSON.stringify(contents, replacer, indentation);
 
-  return this.write(filepath, `${json}\n`);
+  return this.write(filepath, `${json}\n`, options);
 }

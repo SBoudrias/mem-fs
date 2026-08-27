@@ -42,6 +42,7 @@ type CopySingleOptions<TransformData = unknown, TransformOptions = unknown> = {
   }) => { path: string; contents: string | Buffer };
   transformData?: TransformData;
   transformOptions?: TransformOptions;
+  metadata?: Record<string, unknown>;
 };
 
 type CopyOptions<TransformData = unknown, TransformOptions = unknown> = CopySingleOptions<
@@ -117,11 +118,13 @@ export function copySingle<
   if ((options.append ?? false) && editor.store.existsInMemory(destinationPath)) {
     editor.append(destinationPath, contents, { create: true, ...options });
   } else if (File.isVinyl(file)) {
+    const clonedFile = file.clone({ contents: false, deep: false });
     writeInternal(
       editor.store,
-      Object.assign(file.clone({ contents: false, deep: false }), {
+      Object.assign(clonedFile, {
         contents: Buffer.from(contents),
         path: destinationPath,
+        editorMetadata: options.metadata ?? clonedFile.editorMetadata,
       }),
     );
   } else {
@@ -132,6 +135,7 @@ export function copySingle<
         stat: fs.statSync(file.path, { throwIfNoEntry: false }),
         path: destinationPath,
         history: [file.path],
+        editorMetadata: options.metadata,
       }),
     );
   }

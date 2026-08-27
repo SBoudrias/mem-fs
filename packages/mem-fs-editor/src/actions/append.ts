@@ -5,7 +5,12 @@ export default function append(
   this: MemFsEditor,
   to: string,
   contents: string | Buffer,
-  options?: { create?: boolean; trimEnd?: boolean; separator?: string },
+  options?: {
+    create?: boolean;
+    trimEnd?: boolean;
+    separator?: string;
+    metadata?: Record<string, unknown>;
+  },
 ): void {
   const opts = {
     create: false,
@@ -26,5 +31,6 @@ export default function append(
   const newContent = currentContent
     ? currentContent + opts.separator + contents.toString()
     : contents;
-  this.write(to, newContent);
+
+  this.write(to, newContent, { metadata: opts.metadata });
 }

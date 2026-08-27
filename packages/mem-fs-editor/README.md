@@ -32,9 +32,16 @@ Read a file and parse its contents as JSON.
 
 `readJSON()` internally calls `read()` but will not throw an error if the file path you pass in does not exist. If you pass in an optional `defaults`, the `defaults` content will be returned in case of the target file is missing, instead of `undefined`. (Error would still be thrown if `JSON.parse` failed to parse your target file.)
 
-### `#write(filepath, contents)`
+### `#write(filepath, contents[, options])`
 
 Replace the content of a file (existing or new) with a string or a buffer.
+
+Optionally pass an `options` object:
+
+- `options.stat`: A `fs.Stats` object to attach to the file.
+- `options.metadata`: An arbitrary object attached to the file as `editorMetadata`, available during `store.each()` and commit transforms. See [File metadata](#file-metadata).
+
+> **Deprecated:** Passing a bare `fs.Stats` as the third argument (`write(filepath, contents, stat)`) is deprecated. Use the `WriteOptions` object form instead: `write(filepath, contents, { stat })`.
 
 ### `#writeJSON(filepath, contents[, replacer [, space]])`
 
@@ -53,6 +60,7 @@ Append the new contents to the current file contents.
 - `options.trimEnd` (default `true`). Trim trailing whitespace of the current file contents.
 - `options.separator` (default `os.EOL`). Separator to insert between current and new contents.
 - `options.create` (default `false`). Create the file if doesn't exists.
+- `options.metadata`: An arbitrary object attached to the file as `editorMetadata`. See [File metadata](#file-metadata).
 
 ### `#appendTpl(filepath, contents, data[, options])`
 
@@ -106,6 +114,7 @@ fs.copy('source.txt', 'dest.txt', {
 
 `options.ignoreNoMatch` can be used to silence the error thrown if no files match the `from` pattern.
 `options.append` can be used to append `from` contents to `to` instead of copying, when the file is already loaded in mem-fs (safe for regeneration).
+`options.metadata` can be used to attach an arbitrary object to the copied file as `editorMetadata`. When omitted, the source file's `editorMetadata` (if any) is carried forward to the copy. See [File metadata](#file-metadata).
 
 `from` can be a glob pattern that'll be match against the file system. If that's the case, then `to` must be an output directory. For a globified `from`, you can optionally pass in an `options.globOptions` object to change its pattern matching behavior. The full list of options are being described [here](https://github.com/mrmlnc/fast-glob#options-1). The `nodir` flag is forced to be `true` in `globOptions` to ensure a vinyl object representing each matching directory is marked as `deleted` in the `mem-fs` store.
 
@@ -157,7 +166,7 @@ Same parameters of `copyTpl` (see [copyTpl() documentation for more details](#co
 
 Move/rename a file from the `from` path to the `to` path.
 
-`#move` internally uses `#copy` and `#delete`, so `from` can be a glob pattern, and you can provide `options.globOptions` with it.
+`#move` internally uses `#copy` and `#delete`, so `from` can be a glob pattern, and you can provide `options.globOptions` with it. `options.metadata` is passed through to the copy (see [File metadata](#file-metadata)).
 
 ### `#exists(filepath)`
 
@@ -173,7 +182,39 @@ Pass a custom filter `options.filter` to customize files passed through the pipe
 If provided, `...transforms` is a vararg of TransformStream to be applied on a stream of vinyl files (like gulp plugins).
 `commitTransform` is appended to `transforms` and persists modified files to disk, non modified files are passed through.
 
+Each file passed through the pipeline carries its `editorMetadata` (if any), so transforms can read it to drive content processing. See [File metadata](#file-metadata).
+
 returns promise that is resolved once the pipeline is finished.
+
+## File metadata
+
+Editor actions that create or copy files (`write`, `writeJSON`, `extendJSON`, `append`, `appendTpl`, `copy`, `copyAsync`, `copyTpl`, `copyTplAsync`, `move`) accept an optional `metadata` option. The object is attached to the underlying mem-fs Vinyl file as `editorMetadata` and remains available during `store.each()`, `store.all()`, and commit transforms.
+
+```js
+import { Duplex } from 'node:stream';
+
+fs.write('src/app.js', sourceContent, {
+  metadata: {
+    cleanupMarks: true,
+  },
+});
+
+await fs.commit(
+  Duplex.from(async function* (generator) {
+    for await (const file of generator) {
+      if (file.contents && file.editorMetadata?.cleanupMarks) {
+        file.contents = cleanupMarks(file.contents);
+      }
+
+      yield file;
+    }
+  }),
+);
+```
+
+When copying, an explicit `metadata` option overrides the source file's metadata; when omitted, the source file's `editorMetadata` (if any) is carried forward to the copy.
+
+When metadata is not provided, behavior is unchanged and no `editorMetadata` is set.
 
 ### `#dump([cwd,] [filter])`
 

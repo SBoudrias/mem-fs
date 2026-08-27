@@ -19,6 +19,7 @@ describe('#writeJSON()', () => {
     expect(memFs.write).toHaveBeenCalledWith(
       filepath,
       `${JSON.stringify(contents, null, 2)}\n`,
+      undefined,
     );
   });
 
@@ -31,6 +32,7 @@ describe('#writeJSON()', () => {
     expect(memFs.write).toHaveBeenCalledWith(
       filepath,
       `${JSON.stringify(contents, null, 2)}\n`,
+      undefined,
     );
   });
 
@@ -53,6 +55,7 @@ describe('#writeJSON()', () => {
         (key: string, value: unknown): unknown => (key === 'secret' ? undefined : value),
         2,
       )}\n`,
+      undefined,
     );
   });
 
@@ -79,6 +82,7 @@ describe('#writeJSON()', () => {
     expect(memFs.write).toHaveBeenCalledWith(
       filepath,
       `${JSON.stringify(contents, null, 2)}\n`,
+      undefined,
     );
   });
 });

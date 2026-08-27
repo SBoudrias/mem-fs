@@ -48,4 +48,13 @@ describe('#append()', () => {
 
     expect(memFs.read('append.txt')).toBe(`a\n\n${EOL}b`);
   });
+
+  it('attaches metadata to the file', () => {
+    const metadata = { cleanupMarks: true };
+    memFs.write('append.txt', 'a');
+    memFs.append('append.txt', 'b', { metadata });
+
+    expect(memFs.read('append.txt')).toBe(`a${EOL}b`);
+    expect(memFs.store.get('append.txt').editorMetadata).toEqual(metadata);
+  });
 });

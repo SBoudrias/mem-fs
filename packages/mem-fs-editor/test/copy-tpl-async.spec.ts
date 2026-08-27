@@ -85,6 +85,15 @@ describe.each(['copyTpl', 'copyTplAsync'] as const)('#%s()', (method) => {
     expect(memFs.read(newPath)).toBe(`new content${os.EOL}`);
   });
 
+  it('copyTpl carries metadata forward', async () => {
+    const filepath = getFixture('file-tpl.txt');
+    const newPath = '/new/path/file.txt';
+    const metadata = { cleanupMarks: true };
+    memFs.write(filepath, 'content', { metadata });
+    await memFs[method](filepath, newPath, { name: 'bar' }, { metadata });
+    expect(memFs.store.get(newPath).editorMetadata).toEqual(metadata);
+  });
+
   it('fallback to memory file', async () => {
     const filepath = getFixture('file-tpl.txt');
     await memFs.copyAsync(filepath, `${filepath}.mem`);

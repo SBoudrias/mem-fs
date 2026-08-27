@@ -28,6 +28,8 @@ export interface MemFsEditorFile {
   isNew?: boolean;
   state?: 'modified' | 'deleted';
   stateCleared?: 'modified' | 'deleted';
+
+  editorMetadata?: Record<string, unknown>;
 }
 
 // We don't support StreamFile and stat is not guaranteed to be a fs.Stat instance
@@ -47,6 +49,8 @@ export interface MemFsEditor<EditorFile extends MemFsEditorFile = VinylMemFsEdit
   read: typeof read;
   readJSON: typeof readJSON;
   exists: typeof exists;
+  // Referencing the function type, not the deprecated overload.
+  // oxlint-disable-next-line typescript/no-deprecated
   write: typeof write;
   writeJSON: typeof writeJSON;
   extendJSON: typeof extendJSON;
@@ -65,6 +69,8 @@ export interface MemFsEditor<EditorFile extends MemFsEditorFile = VinylMemFsEdit
 MemFsEditor.prototype.read = read;
 MemFsEditor.prototype.readJSON = readJSON;
 MemFsEditor.prototype.exists = exists;
+// Referencing the function, not the deprecated overload.
+// oxlint-disable-next-line typescript/no-deprecated
 MemFsEditor.prototype.write = write;
 MemFsEditor.prototype.writeJSON = writeJSON;
 MemFsEditor.prototype.extendJSON = extendJSON;

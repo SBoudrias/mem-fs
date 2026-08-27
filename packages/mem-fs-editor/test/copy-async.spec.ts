@@ -60,6 +60,41 @@ describe.each(['copy', 'copyAsync'] as const)('#%s()', (method) => {
     expect(memFs.store.get(newPath).state).toBe('modified');
   });
 
+  it('copy non-vinyl file with explicit metadata', async () => {
+    const filepath = getFixture('file-a.txt');
+    const file = { contents: Buffer.from('content'), path: filepath };
+    memFs.store.add(file);
+    const newPath = '/new/path/file.txt';
+    const metadata = { cleanupMarks: true };
+    await memFs[method](filepath, newPath, { metadata });
+    expect(memFs.store.get(newPath).editorMetadata).toEqual(metadata);
+  });
+
+  it('copy carries metadata from source file forward', async () => {
+    const filepath = getFixture('file-a.txt');
+    const newPath = '/new/path/file.txt';
+    const metadata = { cleanupMarks: true };
+    memFs.write(filepath, 'content', { metadata });
+    await memFs[method](filepath, newPath);
+    expect(memFs.store.get(newPath).editorMetadata).toEqual(metadata);
+  });
+
+  it('copy with explicit metadata overrides source metadata', async () => {
+    const filepath = getFixture('file-a.txt');
+    const newPath = '/new/path/file.txt';
+    memFs.write(filepath, 'content', { metadata: { foo: 1 } });
+    await memFs[method](filepath, newPath, { metadata: { bar: 2 } });
+    expect(memFs.store.get(newPath).editorMetadata).toEqual({ bar: 2 });
+  });
+
+  it('copy without metadata preserves source file metadata', async () => {
+    const filepath = getFixture('file-a.txt');
+    const newPath = '/new/path/file.txt';
+    memFs.write(filepath, 'content', { metadata: { foo: 1 } });
+    await memFs[method](filepath, newPath);
+    expect(memFs.store.get(newPath).editorMetadata).toEqual({ foo: 1 });
+  });
+
   describe('using append option', () => {
     it('should append file to file already loaded', async () => {
       const filepath = getFixture('file-a.txt');

@@ -32,7 +32,11 @@ export function writeInternal<EditorFile extends MemFsEditorFile>(
     ) {
       const { contents, stat } = file;
       setModifiedFileState(existingFile);
-      Object.assign(existingFile, { contents, stat: stat ?? existingFile.stat });
+      Object.assign(existingFile, {
+        contents,
+        stat: stat ?? existingFile.stat,
+        editorMetadata: file.editorMetadata ?? existingFile.editorMetadata,
+      });
       store.add(existingFile);
     }
   } else {
@@ -41,11 +45,42 @@ export function writeInternal<EditorFile extends MemFsEditorFile>(
   }
 }
 
+export type WriteOptions = {
+  stat?: fs.Stats;
+  metadata?: Record<string, unknown>;
+};
+
+function resolveWriteOptions(options?: fs.Stats | WriteOptions): WriteOptions {
+  if (!options) {
+    return {};
+  }
+  // fs.Stats instances have isFile(); WriteOptions does not.
+  if ('isFile' in options) {
+    return { stat: options };
+  }
+  return options;
+}
+
+/**
+ * @deprecated Pass a `WriteOptions` object instead: `write(filepath, contents, { stat })`.
+ */
 export default function write(
   this: MemFsEditor,
   filepath: string,
   contents: string | Buffer,
-  stat?: fs.Stats,
+  stat: fs.Stats,
+): string;
+export default function write(
+  this: MemFsEditor,
+  filepath: string,
+  contents: string | Buffer,
+  options?: WriteOptions,
+): string;
+export default function write(
+  this: MemFsEditor,
+  filepath: string,
+  contents: string | Buffer,
+  options?: fs.Stats | WriteOptions,
 ): string {
   assert.ok(
     typeof contents === 'string' || Buffer.isBuffer(contents),
@@ -53,13 +88,15 @@ export default function write(
   );
 
   const newContents = Buffer.isBuffer(contents) ? contents : Buffer.from(contents);
+  const resolved = resolveWriteOptions(options);
 
   writeInternal(
     this.store,
     new File({
       path: path.resolve(filepath),
       contents: newContents,
-      stat,
+      stat: resolved.stat,
+      editorMetadata: resolved.metadata,
     }),
   );
 
