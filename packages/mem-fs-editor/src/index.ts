@@ -36,7 +36,9 @@ export interface MemFsEditorFile {
 export interface VinylMemFsEditorFile
   extends Omit<Vinyl, 'contents' | 'stat'>, MemFsEditorFile {}
 
-// oxlint-disable-next-line typescript/no-unsafe-declaration-merging
+// Declaration merging: the interface below adds methods to the class. oxlint's
+// no-redeclare doesn't support typescript-eslint's `ignoreDeclarationMerge`.
+// oxlint-disable-next-line typescript/no-unsafe-declaration-merging eslint/no-redeclare
 export class MemFsEditor<EditorFile extends MemFsEditorFile = VinylMemFsEditorFile> {
   store: Store<EditorFile>;
 
