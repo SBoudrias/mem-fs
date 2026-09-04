@@ -20,6 +20,8 @@
  * otherwise silently install a nested mem-fs@4 next to the head tarball,
  * making the tests pass against the wrong mem-fs. The resolution guard
  * (tests/compat-resolution.spec.ts) double-checks this at runtime.
+ *
+ * Run with a Node.js runtime with native type stripping (>= 22.18).
  */
 
 import { execFileSync } from 'node:child_process';
@@ -27,24 +29,27 @@ import fs, { mkdirSync, mkdtempSync, readdirSync, writeFileSync } from 'node:fs'
 import os from 'node:os';
 import path from 'node:path';
 
-/** @typedef {{ version: string, publishConfig?: Record<string, unknown> }} MemFsManifest */
-/** @typedef {Record<string, unknown>} MatrixEntry */
+type MatrixEntry = Record<string, unknown>;
+
+interface MemFsManifest {
+  version: string;
+  publishConfig?: Record<string, unknown>;
+}
+
+interface PackedMemFs {
+  tarball: string;
+  version: string;
+}
 
 const compatDir = import.meta.dirname;
 const repoRoot = path.resolve(compatDir, '../..');
 const memFsPackageDir = path.join(repoRoot, 'packages', 'mem-fs');
 
-/**
- * @param {string} command
- * @param {string[]} args
- * @param {{ cwd?: string }} [options]
- */
-function run(command, args, options = {}) {
+function run(command: string, args: string[], options: { cwd?: string } = {}): void {
   execFileSync(command, args, { stdio: 'inherit', ...options });
 }
 
-/** @param {unknown} value @returns {value is MemFsManifest} */
-function isMemFsManifest(value) {
+function isMemFsManifest(value: unknown): value is MemFsManifest {
   return (
     typeof value === 'object' &&
     value !== null &&
@@ -53,48 +58,41 @@ function isMemFsManifest(value) {
   );
 }
 
-/** @param {string} filePath @returns {MemFsManifest} */
-function readMemFsManifest(filePath) {
-  /** @type {unknown} */
-  const parsed = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+function readMemFsManifest(filePath: string): MemFsManifest {
+  const parsed: unknown = JSON.parse(fs.readFileSync(filePath, 'utf8'));
   if (!isMemFsManifest(parsed)) {
-    throw new Error(`Invalid manifest in ${filePath}`);
+    throw new TypeError(`Invalid manifest in ${filePath}`);
   }
 
   return parsed;
 }
 
-/** @param {unknown} entry @returns {entry is MatrixEntry} */
-function isMatrixEntry(entry) {
-  return typeof entry === 'object' && entry !== null && !Array.isArray(entry);
+function isMatrixEntry(value: unknown): value is MatrixEntry {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-/** @param {unknown} value @returns {value is MatrixEntry[]} */
-function isMatrixEntries(value) {
-  return Array.isArray(value) && value.every((entry) => isMatrixEntry(entry));
-}
-
-/** @param {string} filePath @returns {MatrixEntry[]} */
-function readMatrix(filePath) {
-  /** @type {unknown} */
-  const parsed = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-  if (!isMatrixEntries(parsed)) {
-    throw new Error(`Invalid matrix in ${filePath}`);
+function readMatrix(filePath: string): MatrixEntry[] {
+  const parsed: unknown = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  if (!Array.isArray(parsed)) {
+    throw new TypeError(`Invalid matrix in ${filePath}`);
   }
 
-  return parsed;
+  const entries = parsed.filter((entry) => isMatrixEntry(entry));
+  if (entries.length !== parsed.length) {
+    throw new TypeError(`Invalid matrix in ${filePath}`);
+  }
+
+  return entries;
 }
 
 /** npm pack does not apply `publishConfig`; lerna does it when publishing. */
-/** @param {MemFsManifest} manifest */
-function applyPublishConfig(manifest) {
+function applyPublishConfig(manifest: MemFsManifest): Record<string, unknown> {
   const { publishConfig, ...rest } = manifest;
   return { ...rest, ...(publishConfig ? { ...publishConfig, access: undefined } : {}) };
 }
 
 /** Build and pack mem-fs into a tarball matching the published artifact. */
-/** @param {string} stagingDir */
-function packMemFs(stagingDir) {
+function packMemFs(stagingDir: string): PackedMemFs {
   const memFsManifest = readMemFsManifest(path.join(memFsPackageDir, 'package.json'));
 
   console.log(`# Building mem-fs@${memFsManifest.version} (dist/)...`);
@@ -128,18 +126,14 @@ function packMemFs(stagingDir) {
   return { tarball, version: memFsManifest.version };
 }
 
-/**
- * @param {MatrixEntry} entry
- * @param {{ tarball: string, version: string }} memFs
- */
-function scaffoldProject(entry, memFs) {
+function scaffoldProject(entry: MatrixEntry, memFs: PackedMemFs): string {
   const slug = Object.entries(entry)
     .filter(([name]) => name !== '$comment')
     .map(([name, version]) => `${name.replaceAll('/', '-')}-${String(version)}`)
     .join('+');
   const projectDir = mkdtempSync(path.join(os.tmpdir(), `mem-fs-compat-${slug}-`));
 
-  const dependencies = {
+  const dependencies: Record<string, string> = {
     ...Object.fromEntries(Object.entries(entry).filter(([name]) => name !== '$comment')),
     'mem-fs': path.relative(projectDir, memFs.tarball),
   };
@@ -170,8 +164,7 @@ function scaffoldProject(entry, memFs) {
   return projectDir;
 }
 
-/** @param {string} projectDir */
-function runProject(projectDir) {
+function runProject(projectDir: string): void {
   console.log(`\n# Installing fixture in ${projectDir}`);
   run('npm', ['install', '--no-fund', '--no-audit', '--legacy-peer-deps'], {
     cwd: projectDir,
@@ -180,16 +173,12 @@ function runProject(projectDir) {
   run('npm', ['test'], { cwd: projectDir });
 }
 
-// oxlint-disable-next-line vitest/require-hook -- CLI entry point, not a test file
-main();
-
-function main() {
+function main(): void {
   const matrix = readMatrix(path.join(compatDir, 'matrix.json'));
   const stagingDir = mkdtempSync(path.join(os.tmpdir(), 'mem-fs-compat-pack-'));
   const memFs = packMemFs(stagingDir);
 
-  /** @type {string[]} */
-  const failures = [];
+  const failures: string[] = [];
   for (const entry of matrix) {
     const label = JSON.stringify(entry);
     console.log(`\n=== Compatibility: ${label}`);
@@ -214,3 +203,6 @@ function main() {
     process.exitCode = 1;
   }
 }
+
+// oxlint-disable-next-line vitest/require-hook -- CLI entry point, not a test file
+main();

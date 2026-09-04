@@ -4,10 +4,13 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./run.mjs",
+    ".": "./run.ts",
     "./package.json": "./package.json"
   },
   "scripts": {
-    "test": "node run.mjs"
+    "test": "node run.ts"
+  },
+  "engines": {
+    "node": ">=22.18.0"
   }
 }

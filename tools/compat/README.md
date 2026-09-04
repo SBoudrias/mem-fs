@@ -13,8 +13,11 @@ versions that consumers (e.g. yeoman-generator) still pin.
 ```sh
 yarn workspace @repo/compat test
 # or
-node tools/compat/run.mjs
+node tools/compat/run.ts
 ```
+
+Requires a Node.js runtime with native type stripping (`>= 22.18`) —
+`run.ts` is executed directly, without a build step.
 
 ## How it works
 
