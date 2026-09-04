@@ -2907,7 +2907,7 @@ __metadata:
     vinyl: "npm:^3.0.1"
   peerDependencies:
     "@types/node": ">=20"
-    mem-fs: ^4.0.0
+    mem-fs: ">=4.0.0"
   peerDependenciesMeta:
     "@types/node":
       optional: true
