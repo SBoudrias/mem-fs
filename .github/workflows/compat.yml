@@ -1,0 +1,43 @@
+name: Compatibility
+
+# Backward compatibility harness: pinned published mem-fs-editor versions
+# (tools/compat/matrix.json) run against a mem-fs tarball packed from the
+# repository head. Guards the `mem-fs: >=4.0.0` peer dependency promise.
+
+on:
+  pull_request:
+    paths:
+      - 'packages/mem-fs/**'
+      - 'tools/compat/**'
+      - '.github/workflows/compat.yml'
+  schedule:
+    # Weekly, Monday 05:00 UTC — catches new editor releases published after
+    # this branch merged (the `latest` matrix entry) and registry drift.
+    - cron: '0 5 * * 1'
+  workflow_dispatch:
+
+jobs:
+  compat:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version:
+          - 20
+          - 22
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: corepack enable
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: yarn
+      - name: Install dependencies
+        run: yarn install --immutable
+      - name: Run compat matrix
+        run: node tools/compat/run.mjs

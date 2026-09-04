@@ -1,0 +1,13 @@
+{
+  "name": "@repo/compat",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./run.mjs",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "test": "node run.mjs"
+  }
+}

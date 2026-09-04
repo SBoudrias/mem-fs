@@ -1016,6 +1016,12 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@repo/compat@workspace:tools/compat":
+  version: 0.0.0-use.local
+  resolution: "@repo/compat@workspace:tools/compat"
+  languageName: unknown
+  linkType: soft
+
 "@repo/tsconfig@workspace:*, @repo/tsconfig@workspace:tools/tsconfig":
   version: 0.0.0-use.local
   resolution: "@repo/tsconfig@workspace:tools/tsconfig"
