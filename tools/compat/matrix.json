@@ -1,0 +1,12 @@
+[
+  {
+    "$comment": "Each entry is a set of pinned published packages tested against the head mem-fs tarball. `mem-fs-editor` is required by the test suite.",
+    "mem-fs-editor": "11.1.4"
+  },
+  {
+    "mem-fs-editor": "12.0.3"
+  },
+  {
+    "mem-fs-editor": "latest"
+  }
+]
