@@ -35,7 +35,10 @@ export function writeInternal<EditorFile extends MemFsEditorFile>(
       Object.assign(existingFile, {
         contents,
         stat: stat ?? existingFile.stat,
-        editorMetadata: file.editorMetadata ?? existingFile.editorMetadata,
+        // Merge, so a write carrying some metadata keeps the metadata other writes attached to the file.
+        editorMetadata: file.editorMetadata
+          ? { ...existingFile.editorMetadata, ...file.editorMetadata }
+          : existingFile.editorMetadata,
       });
       store.add(existingFile);
     }
