@@ -65,12 +65,19 @@ describe('#write()', () => {
     expect(memFs.store.get(filepath).editorMetadata).toBeUndefined();
   });
 
-  it('write metadata on existing file overwrites metadata', () => {
+  it('write metadata on existing file merges it over the existing metadata', () => {
     const filepath = getFixture('file-a.txt');
-    memFs.write(filepath, 'first', { metadata: { foo: 1 } });
-    expect(memFs.store.get(filepath).editorMetadata).toEqual({ foo: 1 });
+    memFs.write(filepath, 'first', { metadata: { foo: 1, bar: 1 } });
+    expect(memFs.store.get(filepath).editorMetadata).toEqual({ foo: 1, bar: 1 });
     memFs.write(filepath, 'second', { metadata: { bar: 2 } });
-    expect(memFs.store.get(filepath).editorMetadata).toEqual({ bar: 2 });
+    expect(memFs.store.get(filepath).editorMetadata).toEqual({ foo: 1, bar: 2 });
+  });
+
+  it('write metadata with an undefined key clears it from the existing metadata', () => {
+    const filepath = getFixture('file-a.txt');
+    memFs.write(filepath, 'first', { metadata: { foo: 1, bar: 1 } });
+    memFs.write(filepath, 'second', { metadata: { foo: undefined } });
+    expect(memFs.store.get(filepath).editorMetadata).toEqual({ foo: undefined, bar: 1 });
   });
 
   it('write without metadata preserves existing file metadata', () => {

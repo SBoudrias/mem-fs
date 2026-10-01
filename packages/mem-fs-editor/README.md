@@ -214,6 +214,8 @@ await fs.commit(
 
 When copying, an explicit `metadata` option overrides the source file's metadata; when omitted, the source file's `editorMetadata` (if any) is carried forward to the copy.
 
+When a file already in memory is written again, the new `metadata` is merged over its existing `editorMetadata` (a shallow merge), so metadata attached by previous actions is kept; set a key to `undefined` to clear it. When omitted, the existing `editorMetadata` is kept.
+
 When metadata is not provided, behavior is unchanged and no `editorMetadata` is set.
 
 ### `#dump([cwd,] [filter])`
