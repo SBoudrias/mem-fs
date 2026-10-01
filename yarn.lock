@@ -1130,8 +1130,8 @@ __metadata:
   linkType: hard
 
 "@sboudrias/package@npm:^1.0.1":
-  version: 1.0.2
-  resolution: "@sboudrias/package@npm:1.0.2"
+  version: 1.0.3
+  resolution: "@sboudrias/package@npm:1.0.3"
   dependencies:
     clipanion: "npm:^4.0.0-rc.4"
     globby: "npm:^16.2.0"
@@ -1141,7 +1141,7 @@ __metadata:
     yaml: "npm:^2.9.0"
   bin:
     package: dist/bin.js
-  checksum: 10/077e57937555a1f809369b2a171215364f165df7f894ab22eab19dcb000d49576122cf57727ea91c787e86b09d13c8a53829f03deef7ce963f1e086166493455
+  checksum: 10/71490bfc8bc3d3c7b97527abc91ee2227b59e7c18fbfda00e69be4b17425611d0bc1ecb366a0bbd22c10f2069a7f5e2691dc038c4862ffabc0c4c5aa55316eca
   languageName: node
   linkType: hard
 
