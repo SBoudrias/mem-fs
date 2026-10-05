@@ -286,6 +286,53 @@ describe('mem-fs', () => {
       expect(listener).toHaveBeenCalledWith(path.resolve(fixtureA));
     });
 
+    describe('signal', () => {
+      it('aborts with a signal already aborted, the store left as it was', async () => {
+        store.get(fixtureA);
+        const oldStore = internalStoreMap(store);
+
+        await expect(
+          store.pipeline({ signal: AbortSignal.abort('cancelled') }),
+        ).rejects.toThrow(/abort/iv);
+
+        expect(internalStoreMap(store)).toBe(oldStore);
+        expect(store.existsInMemory(fixtureA)).toBeTruthy();
+      });
+
+      it('aborts with a signal given while a transform runs, the store left as it was once it ends', async () => {
+        const controller = new AbortController();
+        const oldStore = internalStoreMap(store);
+        let startTransform: (() => void) | undefined;
+        let releaseTransform: (() => void) | undefined;
+        const transformStarted = new Promise<void>((resolve) => {
+          startTransform = resolve;
+        });
+        const transformReleased = new Promise<void>((resolve) => {
+          releaseTransform = resolve;
+        });
+
+        const pipeline = store.pipeline(
+          { signal: controller.signal },
+          Duplex.from(async function* pending(generator: AsyncIterable<File>) {
+            for await (const file of generator) {
+              startTransform?.();
+              await transformReleased;
+              yield file;
+            }
+          }),
+        );
+        await transformStarted;
+        controller.abort('cancelled');
+        // The pending transform ends the file it transforms, then the pipeline stops.
+        releaseTransform?.();
+
+        await expect(pipeline).rejects.toThrow(/abort/iv);
+        expect(internalStoreMap(store)).toBe(oldStore);
+        expect(store.existsInMemory(fixtureA)).toBeTruthy();
+        expect(store.existsInMemory(fixtureB)).toBeTruthy();
+      });
+    });
+
     describe('allowOverride option', () => {
       it('throws on duplicated files by default', async () => {
         const fileA = store.get(fixtureA);

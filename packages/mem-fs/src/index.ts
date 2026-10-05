@@ -20,6 +20,8 @@ export type PipelineOptions<StoreFile extends { path: string } = File> = {
   resolveConflict?: (current: StoreFile, newFile: StoreFile) => StoreFile;
   refresh?: boolean;
   allowOverride?: boolean;
+  /** Aborts the pipeline, the store left as it was. */
+  signal?: AbortSignal;
 };
 
 export function isFileTransform<StoreFile extends { path: string } = File>(
@@ -120,6 +122,7 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
       | ((current: StoreFile, newFile: StoreFile) => StoreFile)
       | undefined;
     let refresh = true;
+    let signal: AbortSignal | undefined;
 
     let pipelineTransforms = transforms;
     if (isFileTransform<StoreFile>(options)) {
@@ -128,6 +131,10 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
       ({ filter } = options);
       if (options.refresh != null) {
         ({ refresh } = options);
+      }
+
+      if (options.signal != null) {
+        ({ signal } = options);
       }
 
       if (options.resolveConflict != null) {
@@ -179,7 +186,7 @@ export class Store<StoreFile extends { path: string } = File> extends EventEmitt
         callback(null);
       },
     });
-    await pipeline(source, ...pipelineTransforms, destination);
+    await pipeline(source, ...pipelineTransforms, destination, { signal });
 
     if (newStore) {
       const oldStore = this.store;
