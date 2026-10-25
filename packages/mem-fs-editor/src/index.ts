@@ -16,7 +16,11 @@ import copyTplAsync from './actions/copy-tpl-async.ts';
 import move from './actions/move.ts';
 import commit from './actions/commit.ts';
 import dump from './actions/dump.ts';
-import { DEFAULT_JSON_PARSER, type JSONParser, type ResolvedJSONParser } from './json.ts';
+import {
+  DEFAULT_JSON_PARSER,
+  type MemFsEditorOptions,
+  type ResolvedJSONParser,
+} from './json.ts';
 
 export type { PipelineOptions, FileTransform } from 'mem-fs';
 export type {
@@ -24,6 +28,7 @@ export type {
   JSONParser,
   JSONReplacer,
   JSONStringify,
+  MemFsEditorOptions,
   ResolvedJSONParser,
 } from './json.ts';
 
@@ -51,15 +56,15 @@ export class MemFsEditor<EditorFile extends MemFsEditorFile = VinylMemFsEditorFi
   store: Store<EditorFile>;
   /**
    * JSON handling used by the JSON helpers. Set at construction time via
-   * `create(store, { parse, stringify })` or `new MemFsEditor(store, { parse, stringify })`.
+   * `create(store, { json: { parse, stringify } })`.
    */
   jsonParser: ResolvedJSONParser;
 
-  constructor(store: Store<EditorFile>, parser: JSONParser = {}) {
+  constructor(store: Store<EditorFile>, options: MemFsEditorOptions = {}) {
     this.store = store;
     this.jsonParser = {
-      parse: parser.parse ?? DEFAULT_JSON_PARSER.parse,
-      stringify: parser.stringify ?? DEFAULT_JSON_PARSER.stringify,
+      parse: options.json?.parse ?? DEFAULT_JSON_PARSER.parse,
+      stringify: options.json?.stringify ?? DEFAULT_JSON_PARSER.stringify,
     };
   }
 }
@@ -106,7 +111,7 @@ MemFsEditor.prototype.dump = dump;
 
 export function create<T extends MemFsEditorFile>(
   store: Store<T>,
-  parser?: JSONParser,
+  options?: MemFsEditorOptions,
 ): MemFsEditor<T> {
-  return new MemFsEditor<T>(store, parser);
+  return new MemFsEditor<T>(store, options);
 }

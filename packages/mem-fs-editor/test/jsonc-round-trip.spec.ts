@@ -79,8 +79,10 @@ describe('jsonc round-trip with a consumer-provided parser', () => {
 
   beforeEach(() => {
     memFs = create(createMemFs<MemFsEditorFile>(), {
-      parse: parseJSONC as (text: string) => unknown,
-      stringify: patchStringify,
+      json: {
+        parse: parseJSONC as (text: string) => unknown,
+        stringify: patchStringify,
+      },
     });
   });
 
@@ -147,7 +149,7 @@ describe('jsonc round-trip with a consumer-provided parser', () => {
 
   it('writeJSON() receives the original text of the target file', () => {
     const stringify = vi.fn<JSONStringify>(patchStringify);
-    const editor = create(createMemFs<MemFsEditorFile>(), { stringify });
+    const editor = create(createMemFs<MemFsEditorFile>(), { json: { stringify } });
     editor.write(tsconfigPath, tsconfigJSONC);
 
     editor.writeJSON(tsconfigPath, { foo: 'bar' });
@@ -158,7 +160,7 @@ describe('jsonc round-trip with a consumer-provided parser', () => {
 
   it('writeJSON() passes undefined to the hook for a new file', () => {
     const stringify = vi.fn<JSONStringify>(patchStringify);
-    const editor = create(createMemFs<MemFsEditorFile>(), { stringify });
+    const editor = create(createMemFs<MemFsEditorFile>(), { json: { stringify } });
 
     editor.writeJSON(tsconfigPath, { foo: 'bar' });
 
@@ -169,8 +171,10 @@ describe('jsonc round-trip with a consumer-provided parser', () => {
     // Editor-level parse deliberately fails; only the per-call option can make
     // this read succeed, proving it takes precedence.
     const editor = create(createMemFs<MemFsEditorFile>(), {
-      parse: () => {
-        throw new Error('editor parser should not be used');
+      json: {
+        parse: () => {
+          throw new Error('editor parser should not be used');
+        },
       },
     });
 
@@ -181,7 +185,7 @@ describe('jsonc round-trip with a consumer-provided parser', () => {
 
   it('a per-call parser without stringify falls back to the editor one', () => {
     const editor = create(createMemFs<MemFsEditorFile>(), {
-      stringify: () => 'editor stringify',
+      json: { stringify: () => 'editor stringify' },
     });
 
     editor.writeJSON(tsconfigPath, { foo: 'bar' }, undefined, undefined, undefined, {

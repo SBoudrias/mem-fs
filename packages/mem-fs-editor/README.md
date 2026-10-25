@@ -84,7 +84,7 @@ Optionally pass a `parser` as the last argument to override the JSON handling fo
 
 ## Custom JSON handling (JSONC)
 
-By default the JSON helpers use `JSON.parse` / `JSON.stringify`, so commented files like `tsconfig.json` (JSONC) can't be read, and comments and formatting are lost on every write. You can inject your own JSON handling — either on the editor (applies to every JSON helper) or on a single call:
+By default the JSON helpers use `JSON.parse` / `JSON.stringify`, so commented files like `tsconfig.json` (JSONC) can't be read, and comments and formatting are lost on every write. You can inject your own JSON handling via the editor options (`create(store, { json: { parse, stringify } })`, applies to every JSON helper) or on a single call:
 
 ```js
 import { create as createMemFs } from 'mem-fs';
@@ -92,16 +92,18 @@ import { create as createEditor } from 'mem-fs-editor';
 import { applyEdits, modify, parse as parseJSONC } from 'jsonc-parser';
 
 const fs = createEditor(createMemFs(), {
-  parse: parseJSONC,
-  stringify(originalText, value) {
-    if (originalText === undefined) {
-      return JSON.stringify(value, null, 2);
-    }
-    // Patch the document in place, keeping comments, key order and formatting.
-    return applyEdits(
-      originalText,
-      modify(originalText, ['compilerOptions', 'strict'], true, {}),
-    );
+  json: {
+    parse: parseJSONC,
+    stringify(originalText, value) {
+      if (originalText === undefined) {
+        return JSON.stringify(value, null, 2);
+      }
+      // Patch the document in place, keeping comments, key order and formatting.
+      return applyEdits(
+        originalText,
+        modify(originalText, ['compilerOptions', 'strict'], true, {}),
+      );
+    },
   },
 });
 ```

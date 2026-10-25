@@ -31,6 +31,18 @@ export type JSONParser = {
   stringify?: JSONStringify;
 };
 
+/**
+ * Editor-level options accepted by `create(store, options)` and the
+ * `MemFsEditor` constructor.
+ */
+export type MemFsEditorOptions = {
+  /**
+   * JSON handling used by the JSON helpers (`readJSON`, `writeJSON`,
+   * `extendJSON`).
+   */
+  json?: JSONParser;
+};
+
 export type ResolvedJSONParser = {
   parse: JSONParse;
   stringify: JSONStringify | undefined;
