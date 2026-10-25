@@ -186,6 +186,62 @@ Each file passed through the pipeline carries its `editorMetadata` (if any), so 
 
 returns promise that is resolved once the pipeline is finished.
 
+### `#stream([options])`
+
+Streaming alternative to `#commit()`: instead of persisting every pending file to the disk, `stream()` is an async generator yielding each pending change and letting you decide what to persist, and how.
+
+```js
+import { create as createMemFs } from 'mem-fs';
+import { create as createEditor, markCommitted } from 'mem-fs-editor';
+
+const fs = createEditor(createMemFs());
+
+fs.write('existing.txt', updatedContents);
+fs.write('new-file.txt', 'brand new');
+
+for await (const file of fs.stream()) {
+  // {
+  //   path,                  // absolute file path
+  //   contents,              // pending contents (Buffer, null for deletions)
+  //   originalContents,      // on-disk contents before the first write (Buffer, null for new files)
+  //   state,                 // 'added' | 'modified' | 'deleted'
+  //   changed,               // false when contents are identical to the on-disk contents
+  //   file,                  // underlying store file
+  // }
+}
+```
+
+`stream()` never writes to the disk and does not reset the pending state: `commit()` still works after streaming, and streamed files remain pending until you call `markCommitted(file)`, which performs the same bookkeeping as `commit()` without writing to the disk.
+
+Note that a `write()` with contents identical to the file on disk still marks the file as `modified` (backwards compatible with `commit()`); use `changed` to detect writes that would be a no-op.
+
+Pass `options.filter` to restrict the yielded files; it defaults to pending files.
+
+#### Skipping unchanged files
+
+```js
+for await (const file of fs.stream()) {
+  if (file.changed) {
+    await persist(file.path, file.contents); // your own persistence
+  }
+
+  markCommitted(file.file);
+}
+```
+
+#### Diffing against the original contents
+
+```js
+for await (const file of fs.stream()) {
+  if (file.state === 'modified') {
+    const patch = diff(file.originalContents, file.contents);
+    console.log(file.path, patch);
+  }
+}
+```
+
+`originalContents` is captured when the file is first modified: for files loaded in the store (e.g. through `read()` or `copy()`), the in-memory contents are used and the disk is not read again; for files written without being loaded first, the disk is read once, when the original is first accessed.
+
 ## File metadata
 
 Editor actions that create or copy files (`write`, `writeJSON`, `extendJSON`, `append`, `appendTpl`, `copy`, `copyAsync`, `copyTpl`, `copyTplAsync`, `move`) accept an optional `metadata` option. The object is attached to the underlying mem-fs Vinyl file as `editorMetadata` and remains available during `store.each()`, `store.all()`, and commit transforms.

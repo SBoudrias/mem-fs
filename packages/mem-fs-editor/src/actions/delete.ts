@@ -5,6 +5,7 @@ import normalize from 'normalize-path';
 
 import type { MemFsEditor } from '../index.ts';
 import { setDeletedFileState } from '../state.ts';
+import { captureOriginalContents } from '../original-contents.ts';
 import { globify } from '../util.ts';
 
 export default function deleteAction(
@@ -34,6 +35,7 @@ export default function deleteAction(
   ]);
   for (const file of files) {
     const storeFile = this.store.get(file);
+    captureOriginalContents(storeFile);
     setDeletedFileState(storeFile);
     storeFile.contents = null;
     this.store.add(storeFile);

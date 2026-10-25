@@ -2,6 +2,10 @@ import assert from 'node:assert';
 import path from 'node:path';
 import type fs from 'node:fs';
 import { isFileStateModified, setModifiedFileState } from '../state.ts';
+import {
+  captureOriginalContents,
+  captureOriginalFromDisk,
+} from '../original-contents.ts';
 import File from 'vinyl';
 import type { MemFsEditor, MemFsEditorFile } from '../index.ts';
 import type { Store } from 'mem-fs';
@@ -30,6 +34,7 @@ export function writeInternal<EditorFile extends MemFsEditorFile>(
       !isFileStateModified(existingFile) ||
       !isMemFsEditorFileEqual(existingFile, file)
     ) {
+      captureOriginalContents(existingFile);
       const { contents, stat } = file;
       setModifiedFileState(existingFile);
       Object.assign(existingFile, {
@@ -43,6 +48,7 @@ export function writeInternal<EditorFile extends MemFsEditorFile>(
       store.add(existingFile);
     }
   } else {
+    captureOriginalFromDisk(file);
     setModifiedFileState(file);
     store.add(file);
   }

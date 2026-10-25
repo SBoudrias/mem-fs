@@ -16,8 +16,11 @@ import copyTplAsync from './actions/copy-tpl-async.ts';
 import move from './actions/move.ts';
 import commit from './actions/commit.ts';
 import dump from './actions/dump.ts';
+import stream from './actions/stream.ts';
 
 export type { PipelineOptions, FileTransform } from 'mem-fs';
+export type { StreamedFile, StreamOptions } from './actions/stream.ts';
+export { markCommitted } from './actions/stream.ts';
 
 export interface MemFsEditorFile {
   path: string;
@@ -66,6 +69,7 @@ export interface MemFsEditor<EditorFile extends MemFsEditorFile = VinylMemFsEdit
   move: typeof move;
   commit: typeof commit<EditorFile>;
   dump: typeof dump<EditorFile>;
+  stream: typeof stream<EditorFile>;
 }
 
 MemFsEditor.prototype.read = read;
@@ -86,6 +90,7 @@ MemFsEditor.prototype.copyTplAsync = copyTplAsync;
 MemFsEditor.prototype.move = move;
 MemFsEditor.prototype.commit = commit;
 MemFsEditor.prototype.dump = dump;
+MemFsEditor.prototype.stream = stream;
 
 export function create<T extends MemFsEditorFile>(store: Store<T>): MemFsEditor<T> {
   return new MemFsEditor<T>(store);
