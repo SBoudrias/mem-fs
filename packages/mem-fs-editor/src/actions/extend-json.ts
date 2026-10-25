@@ -1,24 +1,21 @@
 import extend from 'deep-extend';
 import type { MemFsEditor } from '../index.ts';
 import type { WriteOptions } from './write.ts';
-
-type JSONReplacer =
-  | ((this: unknown, key: string, value: unknown) => unknown)
-  | (number | string)[]
-  | null;
+import { type JSONParser, type JSONReplacer } from '../json.ts';
 
 export default function extendJSON(
   this: MemFsEditor,
-  ...[filepath, contents, replacer, space, options]: [
+  ...[filepath, contents, replacer, space, options, parser]: [
     filepath: string,
     contents: Record<string, unknown>,
     replacer?: JSONReplacer,
     space?: string | number,
     options?: WriteOptions,
+    parser?: JSONParser,
   ]
 ): void {
-  const originalContent = this.readJSON(filepath, {});
+  const originalContent = this.readJSON(filepath, {}, parser);
   const newContent = extend({}, originalContent, contents);
 
-  this.writeJSON(filepath, newContent, replacer, space, options);
+  this.writeJSON(filepath, newContent, replacer, space, options, parser);
 }

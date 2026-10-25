@@ -16,8 +16,16 @@ import copyTplAsync from './actions/copy-tpl-async.ts';
 import move from './actions/move.ts';
 import commit from './actions/commit.ts';
 import dump from './actions/dump.ts';
+import { DEFAULT_JSON_PARSER, type JSONParser, type ResolvedJSONParser } from './json.ts';
 
 export type { PipelineOptions, FileTransform } from 'mem-fs';
+export type {
+  JSONParse,
+  JSONParser,
+  JSONReplacer,
+  JSONStringify,
+  ResolvedJSONParser,
+} from './json.ts';
 
 export interface MemFsEditorFile {
   path: string;
@@ -41,9 +49,18 @@ export interface VinylMemFsEditorFile
 // oxlint-disable-next-line typescript/no-unsafe-declaration-merging eslint/no-redeclare
 export class MemFsEditor<EditorFile extends MemFsEditorFile = VinylMemFsEditorFile> {
   store: Store<EditorFile>;
+  /**
+   * JSON handling used by the JSON helpers. Set at construction time via
+   * `create(store, { parse, stringify })` or `new MemFsEditor(store, { parse, stringify })`.
+   */
+  jsonParser: ResolvedJSONParser;
 
-  constructor(store: Store<EditorFile>) {
+  constructor(store: Store<EditorFile>, parser: JSONParser = {}) {
     this.store = store;
+    this.jsonParser = {
+      parse: parser.parse ?? DEFAULT_JSON_PARSER.parse,
+      stringify: parser.stringify ?? DEFAULT_JSON_PARSER.stringify,
+    };
   }
 }
 
@@ -87,6 +104,9 @@ MemFsEditor.prototype.move = move;
 MemFsEditor.prototype.commit = commit;
 MemFsEditor.prototype.dump = dump;
 
-export function create<T extends MemFsEditorFile>(store: Store<T>): MemFsEditor<T> {
-  return new MemFsEditor<T>(store);
+export function create<T extends MemFsEditorFile>(
+  store: Store<T>,
+  parser?: JSONParser,
+): MemFsEditor<T> {
+  return new MemFsEditor<T>(store, parser);
 }
