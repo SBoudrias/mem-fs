@@ -192,7 +192,7 @@ Streaming alternative to `#commit()`: instead of persisting every pending file t
 
 ```js
 import { create as createMemFs } from 'mem-fs';
-import { create as createEditor, markCommitted } from 'mem-fs-editor';
+import { create as createEditor } from 'mem-fs-editor';
 
 const fs = createEditor(createMemFs());
 
@@ -206,12 +206,13 @@ for await (const file of fs.stream()) {
   //   originalContents,      // on-disk contents before the first write (Buffer, null for new files)
   //   state,                 // 'added' | 'modified' | 'deleted'
   //   changed,               // false when contents are identical to the on-disk contents
-  //   file,                  // underlying store file
+  //   file,                  // underlying store file, carrying originalContents
+  //   markCommitted(),       // mark the change as handled (commit() bookkeeping, no disk write)
   // }
 }
 ```
 
-`stream()` never writes to the disk and does not reset the pending state: `commit()` still works after streaming, and streamed files remain pending until you call `markCommitted(file)`, which performs the same bookkeeping as `commit()` without writing to the disk.
+`stream()` never writes to the disk and does not reset the pending state: `commit()` still works after streaming, and streamed files remain pending until you call `markCommitted()` on the yielded change, which performs the same bookkeeping as `commit()` without writing to the disk.
 
 Note that a `write()` with contents identical to the file on disk still marks the file as `modified` (backwards compatible with `commit()`); use `changed` to detect writes that would be a no-op.
 
@@ -225,7 +226,7 @@ for await (const file of fs.stream()) {
     await persist(file.path, file.contents); // your own persistence
   }
 
-  markCommitted(file.file);
+  file.markCommitted();
 }
 ```
 
@@ -240,7 +241,7 @@ for await (const file of fs.stream()) {
 }
 ```
 
-`originalContents` is captured when the file is first modified: for files loaded in the store (e.g. through `read()` or `copy()`), the in-memory contents are used and the disk is not read again; for files written without being loaded first, the disk is read once, when the original is first accessed.
+The original contents are tracked on the store's file object as `originalContents` (also available via `store.get()` / commit transforms), captured when the file is first modified: for files loaded in the store (e.g. through `read()` or `copy()`), the in-memory contents are used and the disk is not read again; for files written without being loaded first, the disk is read once, when the file becomes pending. The field is cleared when the file's state is reset (e.g. by `commit()`), so each modification cycle captures a fresh original.
 
 ## File metadata
 

@@ -1,8 +1,6 @@
 import type { MemFsEditor, MemFsEditorFile } from '../index.ts';
-import { clearOriginalContents, getOriginalContents } from '../original-contents.ts';
 import {
   clearFileState,
-  isFileNew,
   isFilePending,
   isFileStateDeleted,
   setCommittedFile,
@@ -42,10 +40,17 @@ export type StreamedFile = {
   changed: boolean;
 
   /**
-   * The store's file object, for consumers needing to update the editor
-   * state after persisting (e.g. with `markCommitted()`).
+   * The store's file object, carrying the pending state and the captured
+   * `originalContents`.
    */
   file: MemFsEditorFile;
+
+  /**
+   * Mark this change as handled: the same bookkeeping `commit()` performs
+   * after persisting a file, without touching the disk. Call it once you
+   * persisted (or deliberately skipped) the change.
+   */
+  markCommitted: () => void;
 };
 
 export type StreamOptions<EditorFile extends MemFsEditorFile> = {
@@ -60,8 +65,8 @@ export type StreamOptions<EditorFile extends MemFsEditorFile> = {
  * Stream each pending change staged in the editor, letting the consumer
  * decide what to persist and how - a streaming alternative to `commit()`.
  *
- * `stream()` never writes to the disk (originals may be read from it) and
- * does not reset the pending state of the files it yields.
+ * `stream()` never writes to the disk and does not reset the pending state
+ * of the files it yields.
  */
 async function* stream<EditorFile extends MemFsEditorFile>(
   this: MemFsEditor<EditorFile>,
@@ -73,7 +78,7 @@ async function* stream<EditorFile extends MemFsEditorFile>(
   // iterable keeps the yielded files typed.
   const files: AsyncIterable<EditorFile> = this.store.stream({ filter });
   for await (const file of files) {
-    const originalContents = getOriginalContents(file);
+    const originalContents = file.originalContents ?? null;
 
     if (file.contents === null) {
       // Pending changes always carry contents; without contents (e.g. a
@@ -86,6 +91,10 @@ async function* stream<EditorFile extends MemFsEditorFile>(
           state: 'deleted',
           changed: originalContents != null,
           file,
+          markCommitted() {
+            setCommittedFile(file);
+            clearFileState(file);
+          },
         };
       }
     } else {
@@ -98,23 +107,18 @@ async function* stream<EditorFile extends MemFsEditorFile>(
         path: file.path,
         contents,
         originalContents,
-        state: isFileNew(file) ? 'added' : 'modified',
+        // The original contents were captured when the file was made
+        // pending: they tell whether the file existed on the disk then.
+        state: originalContents == null ? 'added' : 'modified',
         changed,
         file,
+        markCommitted() {
+          setCommittedFile(file);
+          clearFileState(file);
+        },
       };
     }
   }
-}
-
-/**
- * Mark a streamed file as handled: the same bookkeeping `commit()` performs
- * after persisting a file, without touching the disk. Call it once you
- * persisted (or deliberately skipped) a file streamed through `stream()`.
- */
-export function markCommitted(file: MemFsEditorFile): void {
-  setCommittedFile(file);
-  clearOriginalContents(file);
-  clearFileState(file);
 }
 
 export default stream;

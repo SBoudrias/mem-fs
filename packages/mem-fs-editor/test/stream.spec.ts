@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { create as createMemFs } from 'mem-fs';
-import { create, markCommitted, type MemFsEditorFile } from '../src/index.ts';
+import { create, type MemFsEditorFile } from '../src/index.ts';
 import { getFixture } from './fixtures.ts';
 
 function diffLines(a: string, b: string): string[] {
@@ -73,24 +73,63 @@ describe('#stream()', () => {
     }
   });
 
-  it('exposes the original contents of a file written without being loaded first', async () => {
+  it('keeps the original of the first modification across subsequent writes', async () => {
+    const memFs = create(createMemFs<MemFsEditorFile>());
+
+    const file = path.join(output, 'file.txt');
+    fs.writeFileSync(file, 'original contents');
+    memFs.read(file);
+    memFs.write(file, 'modified once');
+    memFs.write(file, 'modified twice');
+
+    for await (const streamed of memFs.stream()) {
+      expect(streamed.originalContents?.toString()).toBe('original contents');
+      expect(streamed.contents?.toString()).toBe('modified twice');
+      expect(streamed.changed).toBe(true);
+    }
+  });
+
+  it('captures a fresh original on a new modification cycle after commit()', async () => {
+    const memFs = create(createMemFs<MemFsEditorFile>());
+
+    const file = path.join(output, 'cycle.txt');
+    fs.writeFileSync(file, 'first original');
+    memFs.read(file);
+    memFs.write(file, 'first update');
+    await memFs.commit();
+    // The disk now holds `first update`.
+
+    memFs.write(file, 'second update');
+
+    for await (const streamed of memFs.stream()) {
+      expect(streamed.originalContents?.toString()).toBe('first update');
+      expect(streamed.contents?.toString()).toBe('second update');
+    }
+  });
+
+  it('captures the original contents of a file written without being loaded first', async () => {
     const memFs = create(createMemFs<MemFsEditorFile>());
 
     const file = path.join(output, 'file.txt');
     fs.writeFileSync(file, 'on disk');
 
-    memFs.write(file, 'in editor');
-
     let reads = 0;
-    fs.writeFileSync(file, 'changed behind our back');
     const { readFileSync } = fs;
     vi.spyOn(fs, 'readFileSync').mockImplementation((...args) => {
       reads += 1;
       return readFileSync(...args);
     });
 
+    memFs.write(file, 'in editor');
+
+    // The original is read from the disk once, when the file becomes
+    // pending, and never re-read afterwards.
+    expect(reads).toBe(1);
+
+    fs.writeFileSync(file, 'changed behind our back');
+
     for await (const streamed of memFs.stream()) {
-      expect(streamed.originalContents?.toString()).toBe('changed behind our back');
+      expect(streamed.originalContents?.toString()).toBe('on disk');
     }
 
     expect(reads).toBe(1);
@@ -98,7 +137,7 @@ describe('#stream()', () => {
     vi.mocked(fs.readFileSync).mockRestore();
   });
 
-  it('handles a file removed from the disk after being written', async () => {
+  it('keeps the original contents captured when the file was written', async () => {
     const memFs = create(createMemFs<MemFsEditorFile>());
 
     const file = path.join(output, 'vanished.txt');
@@ -107,8 +146,8 @@ describe('#stream()', () => {
     fs.rmSync(file);
 
     for await (const streamed of memFs.stream()) {
-      expect(streamed.originalContents).toBeNull();
-      expect(streamed.state).toBe('added');
+      expect(streamed.originalContents?.toString()).toBe('on disk');
+      expect(streamed.state).toBe('modified');
       expect(streamed.changed).toBe(true);
     }
   });
@@ -164,6 +203,9 @@ describe('#stream()', () => {
     const streamed = [];
     for await (const change of memFs.stream()) {
       streamed.push(change);
+      // Consumer removes the file itself.
+      fs.rmSync(change.path);
+      change.markCommitted();
     }
 
     expect(streamed).toHaveLength(1);
@@ -174,6 +216,10 @@ describe('#stream()', () => {
       changed: true,
     });
     expect(streamed[0]?.originalContents?.toString()).toBe('to delete');
+
+    const storeFile = memFs.store.get(file);
+    expect(storeFile.committed).toBe(true);
+    expect(storeFile.state).toBeUndefined();
   });
 
   it('handles deleting a path that was never loaded and does not exist', async () => {
@@ -287,7 +333,7 @@ describe('#stream()', () => {
         expect(change.contents.toString()).toBe('updated');
         // Consumer persists the file itself.
         fs.writeFileSync(change.path, change.contents);
-        markCommitted(change.file);
+        change.markCommitted();
       }
 
       expect(seen).toBe(1);
@@ -328,7 +374,7 @@ describe('#stream()', () => {
           written.add(change.path);
         }
 
-        markCommitted(change.file);
+        change.markCommitted();
       }
 
       expect(written).toEqual(new Set([changed]));

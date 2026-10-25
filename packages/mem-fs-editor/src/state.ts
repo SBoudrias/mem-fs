@@ -1,5 +1,4 @@
 import fs from 'node:fs';
-import { clearOriginalContents } from './original-contents.ts';
 import { type MemFsEditorFile } from './index.ts';
 
 const states: Record<'MODIFIED' | 'DELETED', MemFsEditorFile['state']> = {
@@ -73,7 +72,7 @@ export const clearFileState = (file: MemFsEditorFile): void => {
   delete file.isNew;
   // The original contents were persisted (or discarded) along with the
   // state: a new modification cycle captures a fresh original.
-  clearOriginalContents(file);
+  delete file.originalContents;
 };
 
 export const hasState = (file: MemFsEditorFile): boolean => Boolean(file.state);

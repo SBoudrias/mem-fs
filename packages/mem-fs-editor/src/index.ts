@@ -20,7 +20,6 @@ import stream from './actions/stream.ts';
 
 export type { PipelineOptions, FileTransform } from 'mem-fs';
 export type { StreamedFile, StreamOptions } from './actions/stream.ts';
-export { markCommitted } from './actions/stream.ts';
 
 export interface MemFsEditorFile {
   path: string;
@@ -31,6 +30,18 @@ export interface MemFsEditorFile {
   isNew?: boolean;
   state?: 'modified' | 'deleted';
   stateCleared?: 'modified' | 'deleted';
+
+  /**
+   * The contents the file had before its first modification through the
+   * editor - a reference to the in-memory contents for files loaded from the
+   * disk, the disk contents read once for files written without being loaded
+   * first. `null` when the file doesn't exist on the disk.
+   *
+   * Set when the file becomes pending, deleted when its state is reset
+   * (e.g. by `commit()`), so each modification cycle captures a fresh
+   * original.
+   */
+  originalContents?: Buffer | null;
 
   editorMetadata?: Record<string, unknown>;
 }

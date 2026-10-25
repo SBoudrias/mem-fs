@@ -48,6 +48,9 @@ export function writeInternal<EditorFile extends MemFsEditorFile>(
       store.add(existingFile);
     }
   } else {
+    // `file` may be a vinyl clone carrying its source's originalContents
+    // (e.g. from `copy()`); the destination tracks its own original.
+    delete file.originalContents;
     captureOriginalFromDisk(file);
     setModifiedFileState(file);
     store.add(file);
