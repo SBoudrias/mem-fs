@@ -186,6 +186,69 @@ Each file passed through the pipeline carries its `editorMetadata` (if any), so 
 
 returns promise that is resolved once the pipeline is finished.
 
+### `#stream([options])`
+
+> **Experimental** This API is experimental and may change without a major version bump.
+
+Streaming alternative to `#commit()`: instead of persisting every pending file to the disk, `stream()` is an async generator yielding each pending change and letting you decide what to persist, and how.
+
+```js
+import { create as createMemFs } from 'mem-fs';
+import { create as createEditor } from 'mem-fs-editor';
+
+const fs = createEditor(createMemFs());
+
+fs.write('existing.txt', updatedContents);
+fs.write('new-file.txt', 'brand new');
+
+for await (const file of fs.stream()) {
+  // {
+  //   path,                  // absolute file path
+  //   contents,              // pending contents (Buffer, null for deletions)
+  //   originalContents,      // on-disk contents before the first write (Buffer, null for new files)
+  //   stat,                  // pending stat (e.g. mode) staged by the write
+  //   originalStat,          // on-disk stat before the first write (null for new files)
+  //   state,                 // 'added' | 'modified' | 'deleted'
+  //   changed,               // false when contents and mode are identical to the on-disk ones
+  //   file,                  // underlying store file, carrying originalContents/originalStat
+  //   markCommitted(),       // mark the change as handled (commit() bookkeeping, no disk write)
+  // }
+}
+```
+
+`stream()` never writes to the disk and does not reset the pending state: `commit()` still works after streaming, and streamed files remain pending until you call `markCommitted()` on the yielded change, which performs the same bookkeeping as `commit()` without writing to the disk.
+
+It iterates a snapshot of the pending files taken when the generator starts: files written while you iterate are not yielded.
+
+Note that a `write()` with contents identical to the file on disk still marks the file as `modified` (backwards compatible with `commit()`); use `changed` to detect writes that would be a no-op, including mode-only changes (e.g. making a script executable).
+
+Pass `options.filter` to narrow the stream to matching pending files; it never widens it to files without a staged change.
+
+#### Skipping unchanged files
+
+```js
+for await (const file of fs.stream()) {
+  if (file.changed) {
+    await persist(file.path, file.contents); // your own persistence
+  }
+
+  file.markCommitted();
+}
+```
+
+#### Diffing against the original contents
+
+```js
+for await (const file of fs.stream()) {
+  if (file.state === 'modified') {
+    const patch = diff(file.originalContents, file.contents);
+    console.log(file.path, patch);
+  }
+}
+```
+
+The original contents and stat are tracked on the store's file object as `originalContents`/`originalStat` (also available via `store.get()` / commit transforms), captured when the file is first modified: for files loaded in the store (e.g. through `read()` or `copy()`), the in-memory contents are used and the disk is not read again; for files written without being loaded first, the disk is read once, when the change is first streamed. Both fields are cleared when the file's state is reset (e.g. by `commit()`), so each modification cycle captures a fresh original.
+
 ## File metadata
 
 Editor actions that create or copy files (`write`, `writeJSON`, `extendJSON`, `append`, `appendTpl`, `copy`, `copyAsync`, `copyTpl`, `copyTplAsync`, `move`) accept an optional `metadata` option. The object is attached to the underlying mem-fs Vinyl file as `editorMetadata` and remains available during `store.each()`, `store.all()`, and commit transforms.
