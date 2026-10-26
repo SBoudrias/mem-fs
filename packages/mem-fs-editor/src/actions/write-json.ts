@@ -1,34 +1,43 @@
 import type { MemFsEditor } from '../index.ts';
-import type { WriteOptions } from './write.ts';
 import {
-  type JSONParser,
-  type JSONReplacer,
   getFileText,
   resolveJSONParser,
+  tryParseOriginal,
+  type JSONParser,
+  type JSONReplacer,
 } from '../json.ts';
+import type { WriteOptions } from './write.ts';
 
 const DEFAULT_INDENTATION = 2;
 
+export type WriteJSONOptions = WriteOptions & { json?: JSONParser };
+
 export default function writeJSON(
   this: MemFsEditor,
-  ...[filepath, contents, replacer, space, options, parser]: [
+  ...[filepath, contents, replacer, space, options]: [
     filepath: string,
     contents: unknown,
     replacer?: JSONReplacer,
     space?: string | number,
-    options?: WriteOptions,
-    parser?: JSONParser,
+    options?: WriteJSONOptions,
   ]
 ): string {
   const indentation = space ?? DEFAULT_INDENTATION;
-  const { stringify } = resolveJSONParser(parser, this.jsonParser);
+  const { parse, stringify } = resolveJSONParser(options?.json, this.json);
 
   if (stringify !== undefined) {
     // A custom serializer is patch-aware: it owns the full document text
     // (including the trailing newline), so its output is written as-is.
+    const originalText = getFileText(this.store, filepath);
     return this.write(
       filepath,
-      stringify(getFileText(this.store, filepath), contents),
+      stringify(contents, {
+        filepath,
+        originalText,
+        original: tryParseOriginal(parse, originalText),
+        replacer,
+        space,
+      }),
       options,
     );
   }

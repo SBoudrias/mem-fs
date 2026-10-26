@@ -28,8 +28,8 @@ export type {
   JSONParser,
   JSONReplacer,
   JSONStringify,
+  JSONStringifyContext,
   MemFsEditorOptions,
-  ResolvedJSONParser,
 } from './json.ts';
 
 export interface MemFsEditorFile {
@@ -58,11 +58,11 @@ export class MemFsEditor<EditorFile extends MemFsEditorFile = VinylMemFsEditorFi
    * JSON handling used by the JSON helpers. Set at construction time via
    * `create(store, { json: { parse, stringify } })`.
    */
-  jsonParser: ResolvedJSONParser;
+  readonly json: ResolvedJSONParser;
 
   constructor(store: Store<EditorFile>, options: MemFsEditorOptions = {}) {
     this.store = store;
-    this.jsonParser = {
+    this.json = {
       parse: options.json?.parse ?? DEFAULT_JSON_PARSER.parse,
       stringify: options.json?.stringify ?? DEFAULT_JSON_PARSER.stringify,
     };

@@ -26,13 +26,13 @@ You can alternatively get the raw contents buffer if you pass `options.raw = tru
 
 By default, calling `read()` on a file path that does not exist throws error. You can, however, pass `options.defaults = 'your default content'` to get a default content you pass in, if you prefer to not deal with try/catch.
 
-### `#readJSON(filepath, [defaults [, parser]])`
+### `#readJSON(filepath, [defaults [, options]])`
 
 Read a file and parse its contents as JSON.
 
 `readJSON()` internally calls `read()` but will not throw an error if the file path you pass in does not exist. If you pass in an optional `defaults`, the `defaults` content will be returned in case of the target file is missing, instead of `undefined`. (Error would still be thrown if `JSON.parse` failed to parse your target file.)
 
-Optionally pass a `parser` to override the JSON handling for this single call — see [Custom JSON handling (JSONC)](#custom-json-handling-jsonc).
+Optionally pass `options.json` to override the JSON handling for this single call — see [Custom JSON handling (JSONC)](#custom-json-handling-jsonc).
 
 ### `#write(filepath, contents[, options])`
 
@@ -45,7 +45,7 @@ Optionally pass an `options` object:
 
 > **Deprecated:** Passing a bare `fs.Stats` as the third argument (`write(filepath, contents, stat)`) is deprecated. Use the `WriteOptions` object form instead: `write(filepath, contents, { stat })`.
 
-### `#writeJSON(filepath, contents[, replacer [, space [, options [, parser]]]])`
+### `#writeJSON(filepath, contents[, replacer [, space [, options]]])`
 
 Replace the content of a file (existing or new) with an object that is to be converted by calling `JSON.stringify()`.
 
@@ -55,7 +55,7 @@ Optionally pass `replacer` and `space` as the last two arguments, as defined by 
 
 Default value for `space` is `2`, when not specified.
 
-Optionally pass a `parser` as the last argument to override the JSON handling for this single call — see [Custom JSON handling (JSONC)](#custom-json-handling-jsonc).
+Optionally pass an `options` object: the same `#write()` options, plus `options.json` to override the JSON handling for this single call — see [Custom JSON handling (JSONC)](#custom-json-handling-jsonc).
 
 ### `#append(filepath, contents, [options])`
 
@@ -74,42 +74,103 @@ Append the new `contents` to the existing `filepath` content and parse the new c
 - `options.separator` (default `os.EOL`). Separator to insert between current and new contents.
 - `options.transformOptions`. Options passed to the EJS renderer when processing the template, similar to `copyTpl`.
 
-### `#extendJSON(filepath, contents[, replacer [, space [, options [, parser]]]])`
+### `#extendJSON(filepath, contents[, replacer [, space [, options]]])`
 
 Extend the content of an existing JSON file with the partial objects provided as argument.
 
 Optionally take the same JSON formatting arguments than `#writeJSON()`.
 
-Optionally pass a `parser` as the last argument to override the JSON handling for this single call — see [Custom JSON handling (JSONC)](#custom-json-handling-jsonc).
+Optionally pass an `options` object: the same `#write()` options, plus `options.json` to override the JSON handling for this single call — see [Custom JSON handling (JSONC)](#custom-json-handling-jsonc).
 
 ## Custom JSON handling (JSONC)
 
-By default the JSON helpers use `JSON.parse` / `JSON.stringify`, so commented files like `tsconfig.json` (JSONC) can't be read, and comments and formatting are lost on every write. You can inject your own JSON handling via the editor options (`create(store, { json: { parse, stringify } })`, applies to every JSON helper) or on a single call:
+By default the JSON helpers use `JSON.parse` / `JSON.stringify`, so commented files like `tsconfig.json` (JSONC) can't be read, and comments and formatting are lost on every write. You can inject your own JSON handling via the editor options (`create(store, { json: { parse, stringify } })`, applies to every JSON helper) or on a single call.
+
+Two contracts:
+
+- `parse(text)` returns the parsed value of a JSON document. **It must throw on input it cannot parse** — the helpers report the failure instead of silently continuing with a partial value. Note that some parsers (e.g. jsonc-parser's `parse`) never throw on their own; wrap them and check their error output.
+- `stringify(value, context)` returns the full text to write. The value comes first, matching `JSON.stringify`. The context provides:
+  - `context.originalText`: the current text of the target file (pending in-memory changes included), `''` if the file exists but is empty, `undefined` if it doesn't exist (never created, or deleted). The text is passed through as-is: a leading BOM, if any, is included.
+  - `context.original`: `originalText` parsed with the configured `parse` hook — no need to re-parse it in the hook. `undefined` when there is no original text or it failed to parse.
+  - `context.replacer` / `context.space`: the `replacer` and `space` arguments of `writeJSON()`/`extendJSON()`, so a hook can honor them. The default (no hook) behavior of `JSON.stringify` including the trailing newline is unchanged.
+
+This makes the hook patch-aware: with `context.originalText` available, an implementation can rewrite only what changed in the original document, keeping comments, key order and formatting intact. Its output is written as-is.
+
+Here is a complete example using [jsonc-parser](https://github.com/microsoft/node-jsonc-parser) (a consumer-provided dependency — the library itself ships no JSON parser):
 
 ```js
 import { create as createMemFs } from 'mem-fs';
 import { create as createEditor } from 'mem-fs-editor';
 import { applyEdits, modify, parse as parseJSONC } from 'jsonc-parser';
 
+// jsonc-parser's parse() never throws; it collects errors and returns a
+// partial value. The parse hook contract requires throwing on invalid input,
+// so wrap it.
+function parse(text) {
+  const errors = [];
+  const value = parseJSONC(text, errors);
+  if (errors.length > 0) {
+    throw new Error(`Invalid JSONC document (${errors.length} parse errors)`);
+  }
+  return value;
+}
+
+// Minimal diff between the new value and the parsed original, expressed as
+// jsonc-parser edits.
+function collectEdits(path, value, original) {
+  if (
+    value === null ||
+    typeof value !== 'object' ||
+    Array.isArray(value) ||
+    original === null ||
+    typeof original !== 'object' ||
+    Array.isArray(original)
+  ) {
+    return JSON.stringify(value) === JSON.stringify(original) ? [] : [[path, value]];
+  }
+
+  const edits = [];
+  for (const [key, child] of Object.entries(value)) {
+    edits.push(...collectEdits([...path, key], child, original[key]));
+  }
+  // writeJSON() means replace: keys of the original that are absent from
+  // the new value are removed.
+  for (const key of Object.keys(original)) {
+    if (!(key in value)) {
+      edits.push([[...path, key], undefined]);
+    }
+  }
+  return edits;
+}
+
 const fs = createEditor(createMemFs(), {
   json: {
-    parse: parseJSONC,
-    stringify(originalText, value) {
-      if (originalText === undefined) {
-        return JSON.stringify(value, null, 2);
+    parse,
+    stringify(value, context) {
+      if (
+        context.originalText === undefined ||
+        context.original === undefined ||
+        context.originalText.trim() === ''
+      ) {
+        // New, empty or unparseable file: serialize from scratch.
+        return `${JSON.stringify(value, context.replacer, context.space ?? 2)}\n`;
       }
-      // Patch the document in place, keeping comments, key order and formatting.
-      return applyEdits(
-        originalText,
-        modify(originalText, ['compilerOptions', 'strict'], true, {}),
-      );
+
+      // Patch only what changed, keeping comments, key order and formatting.
+      let text = context.originalText;
+      for (const [path, editValue] of collectEdits([], value, context.original)) {
+        text = applyEdits(
+          text,
+          modify(text, path, editValue, {
+            formattingOptions: { insertSpaces: true, tabSize: 2 },
+          }),
+        );
+      }
+      return text;
     },
   },
 });
 ```
-
-- `parse(text)` returns the parsed value of a JSON document. With a JSONC parser provided, `readJSON()` reads commented files instead of throwing.
-- `stringify(originalText, value)` returns the full text to write. `originalText` is the current text of the target file (pending in-memory changes included), or `undefined` when the file doesn't exist — this makes the hook patch-aware: an implementation can rewrite only what changed, keeping surrounding comments, key order and formatting intact. When a custom `stringify` is provided, its output is written as-is (`replacer`/`space` are ignored). When none is provided, the default `JSON.stringify` behavior (including the trailing newline) is used.
 
 With the editor created as above, the JSON helpers work on JSONC files:
 
@@ -121,7 +182,9 @@ const config = fs.readJSON('tsconfig.json');
 fs.extendJSON('tsconfig.json', { compilerOptions: { strict: true } });
 ```
 
-A `parser` (or a partial `{ parse, stringify }` object) can also be passed as the last argument of `readJSON()`, `writeJSON()` and `extendJSON()` to override the editor-level handling for a single call.
+> **Warning:** configuring only `parse` (without `stringify`) is a common first step ("I just want `readJSON` to stop throwing on tsconfig"), but `writeJSON()`/`extendJSON()` then fall back to `JSON.stringify` and **drop every comment** when they write. Configure both hooks together when editing JSONC files; `extendJSON()` logs a debug warning (enable with `DEBUG=mem-fs-editor:*`) when a custom `parse` runs without a custom `stringify`.
+
+A `{ json: { parse, stringify } }` object can also be passed as the `json` option of `readJSON()`, `writeJSON()` and `extendJSON()` (their `options` argument) to override the editor-level handling for a single call.
 
 The library itself ships no JSON parser: the hooks are always user-provided, so your dependency tree stays unchanged.
 

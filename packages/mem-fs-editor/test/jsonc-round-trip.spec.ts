@@ -1,15 +1,22 @@
 import path from 'node:path';
 import os from 'node:os';
 import { describe, beforeEach, it, expect, vi } from 'vitest';
-import { applyEdits, modify, parse as parseJSONC, type JSONPath } from 'jsonc-parser';
 import {
+  applyEdits,
+  modify,
+  parse as parseJSONC,
+  type JSONPath,
+  type ParseError,
+} from 'jsonc-parser';
+import {
+  MemFsEditor,
+  type JSONParser,
   type JSONStringify,
-  type MemFsEditor,
+  type JSONStringifyContext,
   type MemFsEditorFile,
   create,
 } from '../src/index.ts';
 import { create as createMemFs } from 'mem-fs';
-import { getFixture } from './fixtures.ts';
 
 const tsconfigPath = path.join(os.tmpdir(), 'mem-fs-editor-jsonc', 'tsconfig.json');
 
@@ -23,29 +30,52 @@ const tsconfigJSONC = `{
 }
 `;
 
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+/**
+ * jsonc-parser's `parse` never throws: it returns a best-effort value and
+ * collects errors. A safe `parse` hook must check the errors and throw, so
+ * malformed files are reported instead of silently read as partial objects.
+ */
+function safeParseJSONC(text: string): unknown {
+  const errors: ParseError[] = [];
+  // Strip a leading BOM: jsonc-parser reports it as a parse error.
+  const value: unknown = parseJSONC(text.replace(/^\uFEFF/u, ''), errors);
+  if (errors.length > 0) {
+    throw new Error(`Invalid JSONC document (${errors.length} parse errors)`);
+  }
+
+  return value;
+}
+
 function collectEdits(
   basePath: JSONPath,
   newValue: unknown,
   originalValue: unknown,
 ): [JSONPath, unknown][] {
-  if (
-    newValue === null ||
-    typeof newValue !== 'object' ||
-    Array.isArray(newValue) ||
-    originalValue === null ||
-    typeof originalValue !== 'object' ||
-    Array.isArray(originalValue)
-  ) {
-    return newValue === originalValue ? [] : [[basePath, newValue]];
+  if (isPlainObject(newValue) && isPlainObject(originalValue)) {
+    const edits: [JSONPath, unknown][] = [];
+    for (const [key, value] of Object.entries(newValue)) {
+      edits.push(...collectEdits([...basePath, key], value, originalValue[key]));
+    }
+
+    // writeJSON() means replace: keys of the original that are absent from the
+    // new value are removed.
+    for (const key of Object.keys(originalValue)) {
+      if (!(key in newValue)) {
+        edits.push([[...basePath, key], undefined]);
+      }
+    }
+
+    return edits;
   }
 
-  const edits: [JSONPath, unknown][] = [];
-  const originalRecord: Record<string, unknown> = { ...originalValue };
-  for (const [key, value] of Object.entries(newValue)) {
-    edits.push(...collectEdits([...basePath, key], value, originalRecord[key]));
-  }
-
-  return edits;
+  // Primitives and arrays are replaced wholesale (keeping the change minimal
+  // by skipping identical values).
+  return JSON.stringify(newValue) === JSON.stringify(originalValue)
+    ? []
+    : [[basePath, newValue]];
 }
 
 /**
@@ -53,20 +83,32 @@ function collectEdits(
  * patches only the values that changed in the original document, so comments,
  * key order and formatting are preserved.
  */
-function patchStringify(originalText: string | undefined, value: unknown): string {
-  if (originalText === undefined) {
-    // New file: nothing to patch, serialize from scratch.
-    return `${JSON.stringify(value, null, 2)}
-`;
+function patchStringify(value: unknown, context: JSONStringifyContext): string {
+  const space = context.space ?? 2;
+  const { originalText, original, replacer } = context;
+  if (
+    originalText === undefined ||
+    originalText.trim() === '' ||
+    original === undefined
+  ) {
+    // New (or empty/unparseable) file: nothing to patch, serialize from scratch.
+    const json =
+      typeof replacer === 'function'
+        ? JSON.stringify(value, replacer, space)
+        : JSON.stringify(value, replacer, space);
+    return `${json}\n`;
   }
 
   let text = originalText;
-  const edits = collectEdits([], value, parseJSONC(originalText));
+  const edits = collectEdits([], value, context.original);
   for (const [jsonPath, editValue] of edits) {
     text = applyEdits(
       text,
       modify(text, jsonPath, editValue, {
-        formattingOptions: { insertSpaces: true, tabSize: 2 },
+        formattingOptions: {
+          insertSpaces: true,
+          tabSize: typeof space === 'number' ? space : 2,
+        },
       }),
     );
   }
@@ -74,16 +116,16 @@ function patchStringify(originalText: string | undefined, value: unknown): strin
   return text;
 }
 
+const createJSONCEditor = (json: Partial<JSONParser> = {}): MemFsEditor =>
+  create(createMemFs<MemFsEditorFile>(), {
+    json: { parse: safeParseJSONC, stringify: patchStringify, ...json },
+  });
+
 describe('jsonc round-trip with a consumer-provided parser', () => {
   let memFs: MemFsEditor;
 
   beforeEach(() => {
-    memFs = create(createMemFs<MemFsEditorFile>(), {
-      json: {
-        parse: parseJSONC as (text: string) => unknown,
-        stringify: patchStringify,
-      },
-    });
+    memFs = createJSONCEditor();
   });
 
   it('readJSON() reads a commented JSONC file', () => {
@@ -91,6 +133,35 @@ describe('jsonc round-trip with a consumer-provided parser', () => {
     expect(memFs.readJSON(tsconfigPath)).toEqual({
       compilerOptions: { target: 'ES2022', module: 'commonjs' },
     });
+  });
+
+  it('readJSON() throws on a malformed JSONC file', () => {
+    memFs.write(tsconfigPath, '{ "target": "ES2022", ');
+
+    expect(() => memFs.readJSON(tsconfigPath)).toThrow(
+      `Could not parse JSON in file: ${tsconfigPath}`,
+    );
+  });
+
+  it('readJSON() reports non-Error throwables from the parse hook', () => {
+    const editor = createJSONCEditor({
+      parse: () => {
+        // A user hook may throw a non-Error; deliberately not an Error object.
+        // oxlint-disable-next-line eslint/no-throw-literal typescript/only-throw-error
+        throw 'not an Error';
+      },
+    });
+    editor.write(tsconfigPath, '{}');
+
+    expect(() => editor.readJSON(tsconfigPath)).toThrow(
+      `Could not parse JSON in file: ${tsconfigPath}. Detail: not an Error`,
+    );
+  });
+
+  it('readJSON() throws on an empty file (empty is not valid JSONC)', () => {
+    memFs.write(tsconfigPath, '');
+
+    expect(() => memFs.readJSON(tsconfigPath)).toThrow(/parse JSON in file/u);
   });
 
   it('extendJSON() patches a commented tsconfig.json without touching comments', () => {
@@ -124,6 +195,134 @@ describe('jsonc round-trip with a consumer-provided parser', () => {
 `);
   });
 
+  it('writeJSON() replaces the document: keys absent from the value are removed', () => {
+    memFs.write(tsconfigPath, tsconfigJSONC);
+    memFs.writeJSON(tsconfigPath, { compilerOptions: { target: 'ES2020' } });
+
+    expect(memFs.read(tsconfigPath)).toBe(`{
+  // compiler options
+  "compilerOptions": {
+    /* base options */
+    "target": "ES2020"
+  }
+}
+`);
+  });
+
+  it('writeJSON() replaces arrays wholesale', () => {
+    memFs.write(
+      tsconfigPath,
+      `{
+  // keep me
+  "list": [1, 2],
+  "kept": true
+}`,
+    );
+    memFs.writeJSON(tsconfigPath, { kept: true, list: [3] });
+
+    // The array is replaced (not merged), the comment survives.
+    expect(memFs.read(tsconfigPath)).toBe(`{
+  // keep me
+  "list": [
+    3
+  ],
+  "kept": true
+}`);
+  });
+
+  it('writeJSON() writes a pending-deleted file as new (no original text)', () => {
+    memFs.write(tsconfigPath, tsconfigJSONC);
+    memFs.delete(tsconfigPath);
+    memFs.writeJSON(tsconfigPath, { fresh: true });
+
+    expect(memFs.read(tsconfigPath)).toBe(
+      `${JSON.stringify({ fresh: true }, null, 2)}\n`,
+    );
+  });
+
+  it('writeJSON() sees an existing empty file as originalText "" (not undefined)', () => {
+    const stringify = vi.fn<JSONStringify>(patchStringify);
+    const editor = createJSONCEditor({ stringify });
+    editor.write(tsconfigPath, '');
+
+    editor.writeJSON(tsconfigPath, { a: 1 });
+
+    expect(stringify).toHaveBeenCalledWith(
+      { a: 1 },
+      expect.objectContaining({ originalText: '' }),
+    );
+  });
+
+  it('writeJSON() passes undefined originalText for a new file', () => {
+    const stringify = vi.fn<JSONStringify>(patchStringify);
+    const editor = createJSONCEditor({ stringify });
+
+    editor.writeJSON(tsconfigPath, { a: 1 });
+
+    expect(stringify).toHaveBeenCalledWith(
+      { a: 1 },
+      expect.objectContaining({ originalText: undefined }),
+    );
+  });
+
+  it('writeJSON() receives the original text and parsed original of the target file', () => {
+    const stringify = vi.fn<JSONStringify>(patchStringify);
+    const editor = createJSONCEditor({ stringify });
+    editor.write(tsconfigPath, tsconfigJSONC);
+
+    editor.writeJSON(tsconfigPath, { foo: 'bar' });
+
+    expect(stringify).toHaveBeenCalledWith(
+      { foo: 'bar' },
+      expect.objectContaining({
+        filepath: tsconfigPath,
+        originalText: tsconfigJSONC,
+        original: { compilerOptions: { target: 'ES2022', module: 'commonjs' } },
+      }),
+    );
+  });
+
+  it('writeJSON() receives undefined original when the original text does not parse', () => {
+    memFs.write(tsconfigPath, '{ "a": 1, ');
+    memFs.writeJSON(tsconfigPath, { a: 2 });
+
+    expect(memFs.read(tsconfigPath)).toBe(`${JSON.stringify({ a: 2 }, null, 2)}\n`);
+  });
+
+  it('writeJSON() passes replacer and space to the stringify hook', () => {
+    const stringify = vi.fn<JSONStringify>(patchStringify);
+    const editor = createJSONCEditor({ stringify });
+    editor.write(tsconfigPath, tsconfigJSONC);
+
+    editor.writeJSON(
+      tsconfigPath,
+      { compilerOptions: { target: 'ES2022' } },
+      ['compilerOptions'],
+      4,
+    );
+
+    expect(stringify).toHaveBeenCalledWith(
+      { compilerOptions: { target: 'ES2022' } },
+      expect.objectContaining({ replacer: ['compilerOptions'], space: 4 }),
+    );
+  });
+
+  it('writeJSON() honors space for new files through the hook', () => {
+    memFs.writeJSON(tsconfigPath, { a: 1 }, undefined, 4);
+
+    expect(memFs.read(tsconfigPath)).toBe(`${JSON.stringify({ a: 1 }, null, 4)}\n`);
+  });
+
+  it('the original text is passed through as-is, including a leading BOM', () => {
+    memFs.write(tsconfigPath, `\uFEFF${tsconfigJSONC}`);
+    memFs.extendJSON(tsconfigPath, { compilerOptions: { strict: true } });
+
+    const contents = memFs.read(tsconfigPath);
+    expect(contents.startsWith('\uFEFF')).toBe(true);
+    expect(contents).toContain('// compiler options');
+    expect(contents).toContain('"strict": true');
+  });
+
   it('readJSON() round-trips the patched file', () => {
     memFs.write(tsconfigPath, tsconfigJSONC);
     memFs.extendJSON(tsconfigPath, {
@@ -139,72 +338,69 @@ describe('jsonc round-trip with a consumer-provided parser', () => {
     });
   });
 
-  it('writeJSON() serializes new files from scratch', () => {
-    const contents = { compilerOptions: { target: 'ES2022' } };
-    memFs.writeJSON(tsconfigPath, contents);
+  it('a parse-only config falls back to JSON.stringify and loses comments (documented)', () => {
+    const parseOnly = create(createMemFs<MemFsEditorFile>(), {
+      json: { parse: safeParseJSONC },
+    });
+    parseOnly.write(tsconfigPath, tsconfigJSONC);
+    parseOnly.extendJSON(tsconfigPath, { compilerOptions: { strict: true } });
 
-    expect(memFs.read(tsconfigPath)).toBe(`${JSON.stringify(contents, null, 2)}
-`);
+    expect(parseOnly.read(tsconfigPath)).toBe(
+      `${JSON.stringify(
+        { compilerOptions: { target: 'ES2022', module: 'commonjs', strict: true } },
+        null,
+        2,
+      )}\n`,
+    );
   });
 
-  it('writeJSON() receives the original text of the target file', () => {
-    const stringify = vi.fn<JSONStringify>(patchStringify);
-    const editor = create(createMemFs<MemFsEditorFile>(), { json: { stringify } });
-    editor.write(tsconfigPath, tsconfigJSONC);
-
-    editor.writeJSON(tsconfigPath, { foo: 'bar' });
-
-    expect(stringify).toHaveBeenCalledOnce();
-    expect(stringify).toHaveBeenCalledWith(tsconfigJSONC, { foo: 'bar' });
-  });
-
-  it('writeJSON() passes undefined to the hook for a new file', () => {
-    const stringify = vi.fn<JSONStringify>(patchStringify);
-    const editor = create(createMemFs<MemFsEditorFile>(), { json: { stringify } });
-
-    editor.writeJSON(tsconfigPath, { foo: 'bar' });
-
-    expect(stringify).toHaveBeenCalledWith(undefined, { foo: 'bar' });
-  });
-
-  it('a per-call parse option overrides the editor parser', () => {
-    // Editor-level parse deliberately fails; only the per-call option can make
-    // this read succeed, proving it takes precedence.
-    const editor = create(createMemFs<MemFsEditorFile>(), {
-      json: {
-        parse: () => {
-          throw new Error('editor parser should not be used');
-        },
+  it('a per-call json option overrides the editor-level parser', () => {
+    const editor = createJSONCEditor({
+      parse: () => {
+        throw new Error('editor parser should not be used');
       },
     });
-
-    expect(
-      editor.readJSON(getFixture('file.json'), undefined, { parse: JSON.parse }),
-    ).toEqual({ foo: 'bar' });
-  });
-
-  it('a per-call parser without stringify falls back to the editor one', () => {
-    const editor = create(createMemFs<MemFsEditorFile>(), {
-      json: { stringify: () => 'editor stringify' },
-    });
-
-    editor.writeJSON(tsconfigPath, { foo: 'bar' }, undefined, undefined, undefined, {
-      parse: JSON.parse,
-    });
-
-    expect(editor.read(tsconfigPath)).toBe('editor stringify');
-  });
-
-  it('a per-call stringify option overrides the editor parser', () => {
-    const stringify = vi.fn<JSONStringify>(() => 'per-call');
-    const editor = create(createMemFs<MemFsEditorFile>());
     editor.write(tsconfigPath, tsconfigJSONC);
 
-    editor.writeJSON(tsconfigPath, { foo: 'bar' }, undefined, undefined, undefined, {
-      stringify,
+    expect(
+      editor.readJSON(tsconfigPath, undefined, { json: { parse: safeParseJSONC } }),
+    ).toEqual({ compilerOptions: { target: 'ES2022', module: 'commonjs' } });
+  });
+
+  it('a per-call json.stringify option overrides the editor-level one', () => {
+    const stringify = vi.fn<JSONStringify>(() => 'per-call');
+    const editor = createJSONCEditor();
+    editor.write(tsconfigPath, tsconfigJSONC);
+
+    editor.writeJSON(tsconfigPath, { foo: 'bar' }, undefined, undefined, {
+      json: { stringify },
     });
 
-    expect(stringify).toHaveBeenCalledWith(tsconfigJSONC, { foo: 'bar' });
+    expect(stringify).toHaveBeenCalledWith(
+      { foo: 'bar' },
+      expect.objectContaining({ originalText: tsconfigJSONC }),
+    );
     expect(editor.read(tsconfigPath)).toBe('per-call');
+  });
+
+  it('a per-call json option without stringify falls back to the editor one', () => {
+    const editor = createJSONCEditor();
+    editor.write(tsconfigPath, tsconfigJSONC);
+
+    editor.writeJSON(tsconfigPath, { a: 1 }, undefined, undefined, {
+      json: { parse: safeParseJSONC },
+    });
+
+    expect(editor.read(tsconfigPath)).toBe(`${JSON.stringify({ a: 1 }, null, 2)}\n`);
+  });
+
+  it('new MemFsEditor(store, options) accepts the same json options', () => {
+    const editor = new MemFsEditor(createMemFs<MemFsEditorFile>(), {
+      json: { parse: safeParseJSONC, stringify: patchStringify },
+    });
+    editor.write(tsconfigPath, tsconfigJSONC);
+    editor.extendJSON(tsconfigPath, { compilerOptions: { strict: true } });
+
+    expect(editor.read(tsconfigPath)).toContain('// compiler options');
   });
 });
