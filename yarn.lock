@@ -2814,6 +2814,7 @@ __metadata:
     ejs: "npm:^6.0.1"
     escape-regexp: "npm:0.0.1"
     isbinaryfile: "npm:5.0.7"
+    jsonc-parser: "npm:^3.3.1"
     mem-fs: "npm:^5.0.0"
     minimatch: "npm:^10.2.5"
     multimatch: "npm:^8.0.0"

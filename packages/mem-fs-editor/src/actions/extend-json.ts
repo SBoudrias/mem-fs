@@ -1,11 +1,10 @@
+import createDebug from 'debug';
 import extend from 'deep-extend';
 import type { MemFsEditor } from '../index.ts';
-import type { WriteOptions } from './write.ts';
+import { DEFAULT_JSON_PARSER, type JSONReplacer } from '../json.ts';
+import type { WriteJSONOptions } from './write-json.ts';
 
-type JSONReplacer =
-  | ((this: unknown, key: string, value: unknown) => unknown)
-  | (number | string)[]
-  | null;
+const debug = createDebug('mem-fs-editor:extend-json');
 
 export default function extendJSON(
   this: MemFsEditor,
@@ -14,10 +13,20 @@ export default function extendJSON(
     contents: Record<string, unknown>,
     replacer?: JSONReplacer,
     space?: string | number,
-    options?: WriteOptions,
+    options?: WriteJSONOptions,
   ]
 ): void {
-  const originalContent = this.readJSON(filepath, {});
+  if (
+    this.json.stringify === undefined &&
+    (options?.json?.parse ?? this.json.parse) !== DEFAULT_JSON_PARSER.parse
+  ) {
+    debug(
+      'A custom parse hook is configured without a stringify hook: %s will be re-serialized with JSON.stringify, dropping comments and formatting',
+      filepath,
+    );
+  }
+
+  const originalContent = this.readJSON(filepath, {}, options);
   const newContent = extend({}, originalContent, contents);
 
   this.writeJSON(filepath, newContent, replacer, space, options);
