@@ -73,6 +73,7 @@ export const clearFileState = (file: MemFsEditorFile): void => {
   // The original contents were persisted (or discarded) along with the
   // state: a new modification cycle captures a fresh original.
   delete file.originalContents;
+  delete file.originalStat;
 };
 
 export const hasState = (file: MemFsEditorFile): boolean => Boolean(file.state);

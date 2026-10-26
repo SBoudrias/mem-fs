@@ -33,15 +33,24 @@ export interface MemFsEditorFile {
 
   /**
    * The contents the file had before its first modification through the
-   * editor - a reference to the in-memory contents for files loaded from the
-   * disk, the disk contents read once for files written without being loaded
-   * first. `null` when the file doesn't exist on the disk.
+   * editor, alongside `originalStat`. For files already tracked in memory
+   * when they were first modified, it is the same Buffer reference as their
+   * previous `contents` (mutating that Buffer in place mutates the original
+   * too). For files written without being loaded first, it is resolved from
+   * the disk once, when first needed (e.g. by `stream()`). `null` when the
+   * file doesn't exist on the disk.
    *
    * Set when the file becomes pending, deleted when its state is reset
    * (e.g. by `commit()`), so each modification cycle captures a fresh
    * original.
    */
   originalContents?: Buffer | null;
+
+  /**
+   * The stat the file had before its first modification through the editor,
+   * captured alongside `originalContents`. `null` for new files.
+   */
+  originalStat?: { mode?: number } | null;
 
   editorMetadata?: Record<string, unknown>;
 }

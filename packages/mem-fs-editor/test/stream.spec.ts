@@ -107,7 +107,7 @@ describe('#stream()', () => {
     }
   });
 
-  it('captures the original contents of a file written without being loaded first', async () => {
+  it('resolves the original contents of a file written without being loaded first, once', async () => {
     const memFs = create(createMemFs<MemFsEditorFile>());
 
     const file = path.join(output, 'file.txt');
@@ -122,32 +122,43 @@ describe('#stream()', () => {
 
     memFs.write(file, 'in editor');
 
-    // The original is read from the disk once, when the file becomes
-    // pending, and never re-read afterwards.
-    expect(reads).toBe(1);
+    // Writing a file never loaded in the store does not read the disk:
+    // commit()-only users pay nothing.
+    expect(reads).toBe(0);
 
     fs.writeFileSync(file, 'changed behind our back');
 
     for await (const streamed of memFs.stream()) {
-      expect(streamed.originalContents?.toString()).toBe('on disk');
+      expect(streamed.originalContents?.toString()).toBe('changed behind our back');
     }
 
+    // The original is resolved from the disk once, when streamed.
+    expect(reads).toBe(1);
+
+    for await (const streamed of memFs.stream()) {
+      expect(streamed.originalContents?.toString()).toBe('changed behind our back');
+    }
+
+    // ... and never re-read afterwards.
     expect(reads).toBe(1);
 
     vi.mocked(fs.readFileSync).mockRestore();
   });
 
-  it('keeps the original contents captured when the file was written', async () => {
+  it('resolves the original when the file was removed from the disk after being written', async () => {
     const memFs = create(createMemFs<MemFsEditorFile>());
 
     const file = path.join(output, 'vanished.txt');
     fs.writeFileSync(file, 'on disk');
     memFs.write(file, 'in editor');
+    // The original is resolved from the disk when streamed, so a file gone
+    // by then resolves to a new file.
     fs.rmSync(file);
 
     for await (const streamed of memFs.stream()) {
-      expect(streamed.originalContents?.toString()).toBe('on disk');
-      expect(streamed.state).toBe('modified');
+      expect(streamed.originalContents).toBeNull();
+      expect(streamed.originalStat).toBeNull();
+      expect(streamed.state).toBe('added');
       expect(streamed.changed).toBe(true);
     }
   });
@@ -178,6 +189,44 @@ describe('#stream()', () => {
 
     for await (const streamed of memFs.stream()) {
       expect(streamed.changed).toBe(true);
+    }
+  });
+
+  it('exposes the pending stat and original stat, and reports mode-only changes', async () => {
+    const memFs = create(createMemFs<MemFsEditorFile>());
+
+    const file = path.join(output, 'script.sh');
+    fs.writeFileSync(file, 'same contents');
+    const originalStat = fs.statSync(file);
+    memFs.read(file);
+
+    // Same contents, only the mode changes (making the script executable);
+    // only `mode` is read, the rest of the stat is irrelevant here.
+    // oxlint-disable-next-line typescript/no-misused-spread
+    const executableStat = { ...originalStat, mode: 0o755 };
+    memFs.write(file, 'same contents', { stat: executableStat });
+
+    for await (const streamed of memFs.stream()) {
+      expect(streamed.contents?.toString()).toBe('same contents');
+      expect(streamed.originalContents?.toString()).toBe('same contents');
+      expect(streamed.stat?.mode).toBe(0o755);
+      expect(streamed.originalStat?.mode).toBe(originalStat.mode);
+      expect(streamed.changed).toBe(true);
+    }
+  });
+
+  it('reports a write staging the on-disk mode as not changed', async () => {
+    const memFs = create(createMemFs<MemFsEditorFile>());
+
+    const file = path.join(output, 'same-mode.txt');
+    fs.writeFileSync(file, 'same contents');
+    memFs.read(file);
+
+    const onDiskStat = fs.statSync(file);
+    memFs.write(file, 'same contents', { stat: onDiskStat });
+
+    for await (const streamed of memFs.stream()) {
+      expect(streamed.changed).toBe(false);
     }
   });
 
@@ -280,6 +329,23 @@ describe('#stream()', () => {
     expect(streamed.map((change) => path.basename(change.path))).toEqual(['b.txt']);
   });
 
+  it('narrows, never widens: a filter matching non-pending files does not yield them', async () => {
+    const memFs = create(createMemFs<MemFsEditorFile>());
+
+    // A file only read is in the store but not pending; a naive filter
+    // matching everything must not yield it as an added file.
+    fs.writeFileSync(path.join(output, 'read-only.txt'), 'untouched');
+    memFs.read(path.join(output, 'read-only.txt'));
+    memFs.write(path.join(output, 'pending.txt'), 'pending');
+
+    const streamed = [];
+    for await (const change of memFs.stream({ filter: () => true })) {
+      streamed.push(change);
+    }
+
+    expect(streamed.map((change) => path.basename(change.path))).toEqual(['pending.txt']);
+  });
+
   it('ignores store entries without contents, like directories', async () => {
     const memFs = create(createMemFs<MemFsEditorFile>());
 
@@ -312,6 +378,242 @@ describe('#stream()', () => {
 
     await memFs.commit();
     expect(fs.readFileSync(file, 'utf8')).toBe('updated');
+  });
+
+  it('iterates a snapshot: files written during the loop are not yielded', async () => {
+    const memFs = create(createMemFs<MemFsEditorFile>());
+
+    memFs.write(path.join(output, 'first.txt'), 'first');
+
+    const streamed = [];
+    for await (const change of memFs.stream()) {
+      streamed.push(change);
+      memFs.write(
+        path.join(output, `written-during-${String(streamed.length)}.txt`),
+        'late',
+      );
+    }
+
+    expect(streamed.map((change) => path.basename(change.path))).toEqual(['first.txt']);
+
+    // The late writes are pending for the next iteration, alongside the
+    // first file (streaming does not reset the pending state).
+    const next = [];
+    for await (const change of memFs.stream()) {
+      next.push(change);
+    }
+    expect(next.map((change) => path.basename(change.path))).toEqual([
+      'first.txt',
+      'written-during-1.txt',
+    ]);
+  });
+
+  it('streams a copy from a pending source with its own original', async () => {
+    const memFs = create(createMemFs<MemFsEditorFile>());
+
+    const source = path.join(output, 'source.txt');
+    const destination = path.join(output, 'destination.txt');
+    fs.writeFileSync(source, 'source original');
+    memFs.write(source, 'pending contents');
+
+    // Copying a pending source stages a pending destination; the copy must
+    // not inherit the source's captured original.
+    memFs.copy(source, destination);
+
+    const streamed = [];
+    for await (const change of memFs.stream()) {
+      streamed.push(change);
+    }
+
+    const destinationChange = streamed.find((change) => change.path === destination);
+    expect(destinationChange?.state).toBe('added');
+    expect(destinationChange?.originalContents).toBeNull();
+    expect(destinationChange?.contents?.toString()).toBe('pending contents');
+  });
+
+  it('streams a move as a deletion and an addition', async () => {
+    const memFs = create(createMemFs<MemFsEditorFile>());
+
+    const from = path.join(output, 'from.txt');
+    const to = path.join(output, 'to.txt');
+    fs.writeFileSync(from, 'moved contents');
+    memFs.move(from, to);
+
+    const streamed = [];
+    for await (const change of memFs.stream()) {
+      streamed.push(change);
+    }
+
+    expect(
+      Object.fromEntries(streamed.map((change) => [change.path, change.state])),
+    ).toEqual({
+      [from]: 'deleted',
+      [to]: 'added',
+    });
+  });
+
+  it('streams an append with the pre-append original', async () => {
+    const memFs = create(createMemFs<MemFsEditorFile>());
+
+    const file = path.join(output, 'appended.txt');
+    fs.writeFileSync(file, 'base');
+    memFs.read(file);
+    memFs.append(file, 'appended', { separator: '' });
+
+    for await (const change of memFs.stream()) {
+      expect(change.contents?.toString()).toBe('baseappended');
+      expect(change.originalContents?.toString()).toBe('base');
+      expect(change.changed).toBe(true);
+    }
+  });
+
+  it('streams binary contents as a Buffer', async () => {
+    const memFs = create(createMemFs<MemFsEditorFile>());
+
+    const contents = Buffer.from([0, 1, 2, 255]);
+    memFs.write(path.join(output, 'file.bin'), contents);
+
+    for await (const change of memFs.stream()) {
+      expect(change.contents).toEqual(contents);
+      expect(change.state).toBe('added');
+    }
+  });
+
+  it('streams a write over an empty file', async () => {
+    const memFs = create(createMemFs<MemFsEditorFile>());
+
+    const file = path.join(output, 'empty.txt');
+    fs.writeFileSync(file, '');
+    memFs.write(file, 'filled');
+
+    for await (const change of memFs.stream()) {
+      expect(change.originalContents).toEqual(Buffer.from(''));
+      expect(change.contents?.toString()).toBe('filled');
+      expect(change.changed).toBe(true);
+    }
+  });
+
+  it('reports an unchanged write-first file as not changed', async () => {
+    const memFs = create(createMemFs<MemFsEditorFile>());
+
+    const file = path.join(output, 'same-contents.txt');
+    fs.writeFileSync(file, 'same contents');
+    // Written without being loaded: the original is resolved from the disk
+    // when streamed, staging no stat.
+    memFs.write(file, 'same contents');
+
+    for await (const streamed of memFs.stream()) {
+      expect(streamed.state).toBe('modified');
+      expect(streamed.changed).toBe(false);
+      // The write staged no stat (vinyl defaults it to null).
+      expect(streamed.stat).toBeNull();
+      expect(streamed.originalStat).not.toBeNull();
+    }
+  });
+
+  it('resolves a path under a non-directory as a new file', async () => {
+    const memFs = create(createMemFs<MemFsEditorFile>());
+
+    // `file.txt` is a file, so `file.txt/nested` cannot exist: resolving
+    // the original reports a new file instead of failing.
+    fs.writeFileSync(path.join(output, 'file.txt'), 'a file');
+    memFs.write(path.join(output, 'file.txt', 'nested'), 'contents');
+
+    for await (const streamed of memFs.stream()) {
+      expect(streamed.state).toBe('added');
+      expect(streamed.originalContents).toBeNull();
+      expect(streamed.changed).toBe(true);
+    }
+  });
+
+  it('throws when writing over a directory path', async () => {
+    const memFs = create(createMemFs<MemFsEditorFile>());
+
+    // Persisting over a directory fails on any channel, the same way
+    // `commit()` does.
+    memFs.write(output, 'contents');
+
+    await expect(async () => {
+      for await (const _change of memFs.stream()) {
+        // drains until the throw
+      }
+    }).rejects.toThrow(/is not a file/v);
+  });
+
+  it('propagates errors reading the original', async () => {
+    const memFs = create(createMemFs<MemFsEditorFile>());
+
+    const file = path.join(output, 'unreadable.txt');
+    fs.writeFileSync(file, 'contents');
+    fs.chmodSync(file, 0o000);
+    memFs.write(file, 'updated');
+    fs.chmodSync(file, 0o644);
+
+    // The file is readable again, but resolving the original through a
+    // mocked permission error propagates instead of reporting a new file.
+    const { readFileSync } = fs;
+    vi.spyOn(fs, 'readFileSync').mockImplementation((...args) => {
+      if (args[0] === file) {
+        throw Object.assign(new Error('permission denied'), { code: 'EACCES' });
+      }
+
+      return readFileSync(...args);
+    });
+
+    await expect(async () => {
+      for await (const _change of memFs.stream()) {
+        // drains until the throw
+      }
+    }).rejects.toThrow(/permission denied/v);
+
+    vi.mocked(fs.readFileSync).mockRestore();
+  });
+
+  it('propagates stat errors resolving the original', async () => {
+    const memFs = create(createMemFs<MemFsEditorFile>());
+
+    const file = path.join(output, 'stat-error.txt');
+    memFs.write(file, 'updated');
+
+    const { statSync } = fs;
+    vi.spyOn(fs, 'statSync').mockImplementation((...args) => {
+      if (args[0] === file) {
+        throw Object.assign(new Error('permission denied'), { code: 'EACCES' });
+      }
+
+      return statSync(...args);
+    });
+
+    await expect(async () => {
+      for await (const _change of memFs.stream()) {
+        // drains until the throw
+      }
+    }).rejects.toThrow(/permission denied/v);
+
+    vi.mocked(fs.statSync).mockRestore();
+  });
+
+  it('resolves the original of a path statSync reports as ENOTDIR', async () => {
+    const memFs = create(createMemFs<MemFsEditorFile>());
+
+    const file = path.join(output, 'enotdir.txt');
+    memFs.write(file, 'updated');
+
+    const { statSync } = fs;
+    vi.spyOn(fs, 'statSync').mockImplementation((...args) => {
+      if (args[0] === file) {
+        throw Object.assign(new Error('not a directory'), { code: 'ENOTDIR' });
+      }
+
+      return statSync(...args);
+    });
+
+    for await (const streamed of memFs.stream()) {
+      expect(streamed.state).toBe('added');
+      expect(streamed.originalContents).toBeNull();
+    }
+
+    vi.mocked(fs.statSync).mockRestore();
   });
 
   describe('markCommitted()', () => {

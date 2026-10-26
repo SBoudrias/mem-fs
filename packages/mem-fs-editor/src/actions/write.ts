@@ -1,11 +1,8 @@
 import assert from 'node:assert';
 import path from 'node:path';
 import type fs from 'node:fs';
-import { isFileStateModified, setModifiedFileState } from '../state.ts';
-import {
-  captureOriginalContents,
-  captureOriginalFromDisk,
-} from '../original-contents.ts';
+import { hasState, isFileStateModified, setModifiedFileState } from '../state.ts';
+import { captureOriginalContents } from '../original-contents.ts';
 import File from 'vinyl';
 import type { MemFsEditor, MemFsEditorFile } from '../index.ts';
 import type { Store } from 'mem-fs';
@@ -34,7 +31,15 @@ export function writeInternal<EditorFile extends MemFsEditorFile>(
       !isFileStateModified(existingFile) ||
       !isMemFsEditorFileEqual(existingFile, file)
     ) {
-      captureOriginalContents(existingFile);
+      // Capture the pre-modification original from memory only for files
+      // carrying no pending state (a fresh disk load). Files already pending
+      // without a captured original (written without being loaded first)
+      // resolve their original from the disk when streamed, so a second
+      // write does not capture the first pending contents as the original.
+      if (!hasState(existingFile)) {
+        captureOriginalContents(existingFile);
+      }
+
       const { contents, stat } = file;
       setModifiedFileState(existingFile);
       Object.assign(existingFile, {
@@ -48,10 +53,11 @@ export function writeInternal<EditorFile extends MemFsEditorFile>(
       store.add(existingFile);
     }
   } else {
-    // `file` may be a vinyl clone carrying its source's originalContents
-    // (e.g. from `copy()`); the destination tracks its own original.
+    // `file` may be a vinyl clone carrying its source's captured originals
+    // (e.g. from `copy()`); the destination resolves its own original from
+    // the disk when first needed.
     delete file.originalContents;
-    captureOriginalFromDisk(file);
+    delete file.originalStat;
     setModifiedFileState(file);
     store.add(file);
   }
