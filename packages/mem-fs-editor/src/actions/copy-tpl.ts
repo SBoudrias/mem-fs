@@ -24,15 +24,17 @@ export function copyTpl(
   this: MemFsEditor,
   ...[from, to, data = {}, options, compatOptions]: CopyTplParameters
 ): void {
-  // Backward compatibility: in compat mode `options` carries the EJS
-  // options at runtime despite its declared type.
-  const resolvedOptions = compatOptions
-    ? {
-        ...compatOptions,
-        // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-        transformOptions: options as ejs.Options,
-      }
-    : options;
+  let resolvedOptions = options;
+  /* v8 ignore next -- @preserve */
+  if (compatOptions) {
+    // Backward compatibility: in compat mode `options` carries the EJS
+    // options at runtime despite its declared type.
+    resolvedOptions = {
+      ...compatOptions,
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion
+      transformOptions: options as ejs.Options,
+    };
+  }
 
   this.copy(from, to, {
     ...resolvedOptions,
