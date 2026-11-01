@@ -24,19 +24,18 @@ export default async function copyTplAsync(
   this: MemFsEditor,
   ...[from, to, data = {}, options, compatOptions]: CopyTplAsyncParameters
 ): Promise<void> {
-  /* v8 ignore next -- @preserve */
-  if (compatOptions) {
-    // Backward compatibility: in compat mode `options` carries the EJS
-    // options at runtime despite its declared type.
-    options = {
-      ...compatOptions,
-      // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-      transformOptions: options as ejs.Options,
-    };
-  }
+  // Backward compatibility: in compat mode `options` carries the EJS
+  // options at runtime despite its declared type.
+  const resolvedOptions = compatOptions
+    ? {
+        ...compatOptions,
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion
+        transformOptions: options as ejs.Options,
+      }
+    : options;
 
   await this.copyAsync(from, to, {
-    ...options,
+    ...resolvedOptions,
     transformData: data,
     async fileTransform({
       destinationPath,
