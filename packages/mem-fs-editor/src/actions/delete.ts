@@ -4,7 +4,8 @@ import multimatch from 'multimatch';
 import normalize from 'normalize-path';
 
 import type { MemFsEditor } from '../index.ts';
-import { setDeletedFileState } from '../state.ts';
+import { hasState, setDeletedFileState } from '../state.ts';
+import { captureOriginalContents } from '../original-contents.ts';
 import { globify } from '../util.ts';
 
 export default function deleteAction(
@@ -34,6 +35,14 @@ export default function deleteAction(
   ]);
   for (const file of files) {
     const storeFile = this.store.get(file);
+    // Capture the pre-modification original from memory only for files
+    // carrying no pending state (a fresh disk load). Files already modified
+    // (e.g. written without being loaded) resolve their original from the
+    // disk lazily, when streamed.
+    if (!hasState(storeFile)) {
+      captureOriginalContents(storeFile);
+    }
+
     setDeletedFileState(storeFile);
     storeFile.contents = null;
     this.store.add(storeFile);

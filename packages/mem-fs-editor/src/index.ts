@@ -16,8 +16,10 @@ import copyTplAsync from './actions/copy-tpl-async.ts';
 import move from './actions/move.ts';
 import commit from './actions/commit.ts';
 import dump from './actions/dump.ts';
+import stream from './actions/stream.ts';
 
 export type { PipelineOptions, FileTransform } from 'mem-fs';
+export type { StreamedFile, StreamOptions } from './actions/stream.ts';
 
 export interface MemFsEditorFile {
   path: string;
@@ -28,6 +30,27 @@ export interface MemFsEditorFile {
   isNew?: boolean;
   state?: 'modified' | 'deleted';
   stateCleared?: 'modified' | 'deleted';
+
+  /**
+   * The contents the file had before its first modification through the
+   * editor, alongside `originalStat`. For files already tracked in memory
+   * when they were first modified, it is the same Buffer reference as their
+   * previous `contents` (mutating that Buffer in place mutates the original
+   * too). For files written without being loaded first, it is resolved from
+   * the disk once, when first needed (e.g. by `stream()`). `null` when the
+   * file doesn't exist on the disk.
+   *
+   * Set when the file becomes pending, deleted when its state is reset
+   * (e.g. by `commit()`), so each modification cycle captures a fresh
+   * original.
+   */
+  originalContents?: Buffer | null;
+
+  /**
+   * The stat the file had before its first modification through the editor,
+   * captured alongside `originalContents`. `null` for new files.
+   */
+  originalStat?: { mode?: number } | null;
 
   editorMetadata?: Record<string, unknown>;
 }
@@ -66,6 +89,7 @@ export interface MemFsEditor<EditorFile extends MemFsEditorFile = VinylMemFsEdit
   move: typeof move;
   commit: typeof commit<EditorFile>;
   dump: typeof dump<EditorFile>;
+  stream: typeof stream<EditorFile>;
 }
 
 MemFsEditor.prototype.read = read;
@@ -86,6 +110,7 @@ MemFsEditor.prototype.copyTplAsync = copyTplAsync;
 MemFsEditor.prototype.move = move;
 MemFsEditor.prototype.commit = commit;
 MemFsEditor.prototype.dump = dump;
+MemFsEditor.prototype.stream = stream;
 
 export function create<T extends MemFsEditorFile>(store: Store<T>): MemFsEditor<T> {
   return new MemFsEditor<T>(store);
