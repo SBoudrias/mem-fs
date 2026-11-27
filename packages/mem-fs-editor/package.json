@@ -64,6 +64,7 @@
     "@types/escape-regexp": "^0.0.3",
     "@types/normalize-path": "^3.0.2",
     "escape-regexp": "0.0.1",
+    "jsonc-parser": "^3.3.1",
     "mem-fs": "^5.0.0"
   },
   "peerDependencies": {
