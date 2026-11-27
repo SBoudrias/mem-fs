@@ -14,10 +14,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: SBoudrias/fast-setup-node@1e8dc0801940897dfc89fae43b755dbe0c57a64e # v1
+      - uses: SBoudrias/fast-setup-node@95d68654de46bf028db39ab4106675eb11017e98 # v1
         with:
           node-version: latest
-          enable-package-manager: 'true'
       - run: yarn package lint --check
       - run: yarn oxfmt --check
       - run: yarn tsc
@@ -39,8 +38,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: SBoudrias/fast-setup-node@1e8dc0801940897dfc89fae43b755dbe0c57a64e # v1
+      - uses: SBoudrias/fast-setup-node@95d68654de46bf028db39ab4106675eb11017e98 # v1
         with:
           node-version: ${{ matrix.node-version }}
-          enable-package-manager: 'true'
       - run: yarn vitest run --coverage
